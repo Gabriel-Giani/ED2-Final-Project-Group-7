@@ -29,16 +29,16 @@ body {
   overflow: hidden;
 }
 
-/* OpenLayers Map Overrides /
+/* OpenLayers Map Overrides */
 .ol-control button {
-  background-color: #4a5568 !important; / Tailwind gray-600 /
+  background-color: #4a5568 !important; /* Tailwind gray-600 */
 }
 
 .ol-control button:hover {
-  background-color: #2d3748 !important; / Tailwind gray-700 /
+  background-color: #2d3748 !important; /* Tailwind gray-700 */
 }
 
-/ Popup Dark Mode Support /
+/* Popup Dark Mode Support */
 .ol-popup {
   background-color: var(--popup-background);
   color: var(--foreground);
@@ -54,18 +54,18 @@ body {
   border-top-color: var(--popup-border);
 }
 
-/ Prevent text selection on map controls /
+/* Prevent text selection on map controls */
 .ol-control button {
   user-select: none;
   -webkit-user-select: none;
 }
 
-/ Smooth scrolling /
+/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/ Hide scrollbars but allow scrolling */
+/* Hide scrollbars but allow scrolling */
 ::-webkit-scrollbar {
   display: none;
 }
