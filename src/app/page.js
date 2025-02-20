@@ -33,6 +33,9 @@ export default function HomePage() {
   const [locationRadius, setLocationRadius] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Add new state for time filter toggle
+  const [useTimeFilter, setUseTimeFilter] = useState(false);
+
   // Single step zoom (for clicks)
   const handleSingleZoom = (direction) => {
     if (!mapRef.current) return;
@@ -87,19 +90,25 @@ export default function HomePage() {
 
     setIsLoading(true);
     try {
-      // Get accidents within date and time range
-      if (
-        dateRange.start &&
-        dateRange.end &&
-        timeRange.start &&
-        timeRange.end
-      ) {
-        const accidents = await getAccidentsByDateAndTimeRange(
-          dateRange.start,
-          dateRange.end,
-          timeRange.start,
-          timeRange.end
-        );
+      // Check if we have valid dates
+      if (dateRange.start && dateRange.end) {
+        let accidents;
+
+        // Apply date and time filter if time filter is enabled
+        if (useTimeFilter && timeRange.start && timeRange.end) {
+          accidents = await getAccidentsByDateAndTimeRange(
+            dateRange.start,
+            dateRange.end,
+            timeRange.start,
+            timeRange.end
+          );
+        } else {
+          // Otherwise just filter by date
+          accidents = await getAccidentsByDateRange(
+            dateRange.start,
+            dateRange.end
+          );
+        }
 
         // Convert accidents to features and update map
         if (mapRef.current && accidents) {
@@ -123,14 +132,6 @@ export default function HomePage() {
           vectorSource.addFeatures(features);
         }
       }
-      // If only date range is specified, use the existing date range filter
-      else if (dateRange.start && dateRange.end) {
-        const accidents = await getAccidentsByDateRange(
-          dateRange.start,
-          dateRange.end
-        );
-        // ... rest of the existing date range code
-      }
     } catch (error) {
       console.error("Error applying filters:", error);
     } finally {
@@ -143,6 +144,7 @@ export default function HomePage() {
   const resetFilters = () => {
     setDateRange({ start: "", end: "" });
     setTimeRange({ start: "", end: "" });
+    setUseTimeFilter(false);
     setLocationRadius("");
     if (mapRef.current) {
       mapRef.current.fetchCrashData({});
@@ -232,7 +234,15 @@ export default function HomePage() {
               {/* Time Range */}
               <div className="mb-4">
                 <label className="block font-medium text-gray-700">
-                  Time Range:
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={useTimeFilter}
+                      onChange={(e) => setUseTimeFilter(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    Time Range:
+                  </div>
                 </label>
                 <div className="flex gap-2 mt-2">
                   <input
@@ -242,6 +252,7 @@ export default function HomePage() {
                     onChange={(e) =>
                       setTimeRange({ ...timeRange, start: e.target.value })
                     }
+                    disabled={!useTimeFilter}
                   />
                   <input
                     type="time"
@@ -250,6 +261,7 @@ export default function HomePage() {
                     onChange={(e) =>
                       setTimeRange({ ...timeRange, end: e.target.value })
                     }
+                    disabled={!useTimeFilter}
                   />
                 </div>
               </div>
