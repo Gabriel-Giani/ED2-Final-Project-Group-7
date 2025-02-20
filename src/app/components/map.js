@@ -77,8 +77,9 @@ export default function OpenLayersMap({ onMapReady }) {
 
       // Fetch all crash records
       const { data, error } = await supabase
-        .from("florida_crashes_2006")
-        .select("latitude, longitude, dtcarxtrct");
+        .from("ultimate-table")
+        .select("latitude, longitude");
+        
 
       if (error) {
         console.error("Supabase query error:", error);
