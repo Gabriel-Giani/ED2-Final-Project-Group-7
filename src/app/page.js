@@ -3,6 +3,13 @@
 import React, { useState, useRef } from "react";
 import OpenLayersMap from "./components/map";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  getAccidentsByDateRange,
+  getAccidentsByDateAndTimeRange,
+} from "@/utils/db/accidents";
+import { Feature } from "ol";
+import Point from "ol/geom/Point";
+import { fromLonLat } from "ol/proj";
 
 export default function HomePage() {
   // States for pop-ups
@@ -26,17 +33,20 @@ export default function HomePage() {
   const [locationRadius, setLocationRadius] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  // Add new state for time filter toggle
+  const [useTimeFilter, setUseTimeFilter] = useState(false);
+
   // Single step zoom (for clicks)
   const handleSingleZoom = (direction) => {
     if (!mapRef.current) return;
-    mapRef.current.zoomBy(direction === 'in' ? 1 : -1);
+    mapRef.current.zoomBy(direction === "in" ? 1 : -1);
   };
 
   // Continuous zoom (for hold)
   const startContinuousZoom = (direction) => {
     if (!mapRef.current) return;
-    const zoomStep = direction === 'in' ? 0.1 : -0.1;
-    
+    const zoomStep = direction === "in" ? 0.1 : -0.1;
+
     zoomIntervalRef.current = setInterval(() => {
       const currentZoom = mapRef.current.getZoom();
       mapRef.current.zoomTo(currentZoom + zoomStep);
@@ -48,7 +58,7 @@ export default function HomePage() {
       clearTimeout(holdTimeoutRef.current);
       holdTimeoutRef.current = null;
     }
-    
+
     if (zoomIntervalRef.current) {
       clearInterval(zoomIntervalRef.current);
       zoomIntervalRef.current = null;
@@ -60,7 +70,7 @@ export default function HomePage() {
   // Pointer event handlers
   const handlePointerDown = (direction) => {
     isHoldingRef.current = false;
-    
+
     holdTimeoutRef.current = setTimeout(() => {
       isHoldingRef.current = true;
       startContinuousZoom(direction);
@@ -77,28 +87,53 @@ export default function HomePage() {
   // FILTERS
   const applyFilters = async () => {
     if (!mapRef.current) return;
-    
+
     setIsLoading(true);
     try {
-      const filters = {
-        dateRange: {
-          start: dateRange.start || null,
-          end: dateRange.end || null
-        },
-        timeRange: {
-          start: timeRange.start || null,
-          end: timeRange.end || null
-        },
-        locationRadius: locationRadius ? {
-          latitude: mapRef.current.getView().getCenter()[1],
-          longitude: mapRef.current.getView().getCenter()[0],
-          distance: parseInt(locationRadius) * 1000 // Convert km to meters
-        } : null
-      };
+      // Check if we have valid dates
+      if (dateRange.start && dateRange.end) {
+        let accidents;
 
-      await mapRef.current.fetchCrashData(filters);
+        // Apply date and time filter if time filter is enabled
+        if (useTimeFilter && timeRange.start && timeRange.end) {
+          accidents = await getAccidentsByDateAndTimeRange(
+            dateRange.start,
+            dateRange.end,
+            timeRange.start,
+            timeRange.end
+          );
+        } else {
+          // Otherwise just filter by date
+          accidents = await getAccidentsByDateRange(
+            dateRange.start,
+            dateRange.end
+          );
+        }
+
+        // Convert accidents to features and update map
+        if (mapRef.current && accidents) {
+          const features = accidents
+            .map((crash) => {
+              if (crash.latitude && crash.longitude) {
+                return new Feature({
+                  geometry: new Point(
+                    fromLonLat([crash.longitude, crash.latitude])
+                  ),
+                  properties: crash,
+                });
+              }
+              return null;
+            })
+            .filter(Boolean);
+
+          // Update the vector source with new features
+          const vectorSource = mapRef.current.getVectorSource();
+          vectorSource.clear();
+          vectorSource.addFeatures(features);
+        }
+      }
     } catch (error) {
-      console.error('Error applying filters:', error);
+      console.error("Error applying filters:", error);
     } finally {
       setIsLoading(false);
       setShowFilters(false);
@@ -109,6 +144,7 @@ export default function HomePage() {
   const resetFilters = () => {
     setDateRange({ start: "", end: "" });
     setTimeRange({ start: "", end: "" });
+    setUseTimeFilter(false);
     setLocationRadius("");
     if (mapRef.current) {
       mapRef.current.fetchCrashData({});
@@ -167,12 +203,14 @@ export default function HomePage() {
                 border-l-transparent border-r-transparent
                 border-b-gray-100"
               />
-              
+
               <h2 className="font-bold text-lg mb-3">Filters</h2>
 
               {/* Date Range */}
               <div className="mb-4">
-                <label className="block font-medium text-gray-700">Date Range:</label>
+                <label className="block font-medium text-gray-700">
+                  Date Range:
+                </label>
                 <div className="flex gap-2 mt-2">
                   <input
                     type="date"
@@ -195,7 +233,17 @@ export default function HomePage() {
 
               {/* Time Range */}
               <div className="mb-4">
-                <label className="block font-medium text-gray-700">Time Range:</label>
+                <label className="block font-medium text-gray-700">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={useTimeFilter}
+                      onChange={(e) => setUseTimeFilter(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    Time Range:
+                  </div>
+                </label>
                 <div className="flex gap-2 mt-2">
                   <input
                     type="time"
@@ -204,6 +252,7 @@ export default function HomePage() {
                     onChange={(e) =>
                       setTimeRange({ ...timeRange, start: e.target.value })
                     }
+                    disabled={!useTimeFilter}
                   />
                   <input
                     type="time"
@@ -212,6 +261,7 @@ export default function HomePage() {
                     onChange={(e) =>
                       setTimeRange({ ...timeRange, end: e.target.value })
                     }
+                    disabled={!useTimeFilter}
                   />
                 </div>
               </div>
@@ -251,7 +301,7 @@ export default function HomePage() {
                   onClick={applyFilters}
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Applying...' : 'Apply'}
+                  {isLoading ? "Applying..." : "Apply"}
                 </motion.button>
               </div>
             </motion.div>
@@ -272,8 +322,8 @@ export default function HomePage() {
             type="button"
             whileTap={{ scale: 0.9 }}
             className="bg-white text-black rounded p-2 shadow hover:bg-gray-100"
-            onPointerDown={() => handlePointerDown('in')}
-            onPointerUp={() => handlePointerUp('in')}
+            onPointerDown={() => handlePointerDown("in")}
+            onPointerUp={() => handlePointerUp("in")}
             onPointerLeave={() => stopAllZooming()}
           >
             +
@@ -282,8 +332,8 @@ export default function HomePage() {
             type="button"
             whileTap={{ scale: 0.9 }}
             className="bg-white text-black rounded p-2 shadow hover:bg-gray-100"
-            onPointerDown={() => handlePointerDown('out')}
-            onPointerUp={() => handlePointerUp('out')}
+            onPointerDown={() => handlePointerDown("out")}
+            onPointerUp={() => handlePointerUp("out")}
             onPointerLeave={() => stopAllZooming()}
           >
             -
@@ -305,20 +355,20 @@ export default function HomePage() {
               className="absolute inset-0 bg-black/50"
               onClick={closeAbout}
             />
-            
+
             {/* Modal Content */}
             <motion.div
               key="about-content"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ 
+              transition={{
                 duration: 0.2,
                 scale: {
                   type: "spring",
                   damping: 25,
-                  stiffness: 400
-                }
+                  stiffness: 400,
+                },
               }}
               className="relative bg-gray-800 text-gray-100 rounded-xl shadow-lg p-6 w-80 mx-auto"
             >
@@ -343,7 +393,8 @@ export default function HomePage() {
 
       {/* FOOTER */}
       <footer className="h-10 bg-gray-900 border-t border-gray-700 text-gray-400 text-center flex items-center justify-center text-sm">
-        Created by: Chris Medrano, Gabriel Giani, Leonardo Silva &amp; Gavin West
+        Created by: Chris Medrano, Gabriel Giani, Leonardo Silva &amp; Gavin
+        West
       </footer>
     </div>
   );
