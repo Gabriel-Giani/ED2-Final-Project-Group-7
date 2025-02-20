@@ -80,10 +80,6 @@ export default function OpenLayersMap({ onMapReady }) {
       const { data, error } = await supabase
         .from("ultimate-table")
         .select("latitude, longitude");
-<<<<<<< HEAD
-        
-=======
->>>>>>> gabe/date-range-query-filter
 
       if (error) {
         console.error("Supabase query error:", error);
