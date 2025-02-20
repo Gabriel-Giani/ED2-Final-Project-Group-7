@@ -3,7 +3,10 @@
 import React, { useState, useRef } from "react";
 import OpenLayersMap from "./components/map";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAccidentsByDateRange } from "@/utils/db/accidents";
+import {
+  getAccidentsByDateRange,
+  getAccidentsByDateAndTimeRange,
+} from "@/utils/db/accidents";
 import { Feature } from "ol";
 import Point from "ol/geom/Point";
 import { fromLonLat } from "ol/proj";
@@ -84,11 +87,18 @@ export default function HomePage() {
 
     setIsLoading(true);
     try {
-      // Get accidents within date range
-      if (dateRange.start && dateRange.end) {
-        const accidents = await getAccidentsByDateRange(
+      // Get accidents within date and time range
+      if (
+        dateRange.start &&
+        dateRange.end &&
+        timeRange.start &&
+        timeRange.end
+      ) {
+        const accidents = await getAccidentsByDateAndTimeRange(
           dateRange.start,
-          dateRange.end
+          dateRange.end,
+          timeRange.start,
+          timeRange.end
         );
 
         // Convert accidents to features and update map
@@ -113,9 +123,14 @@ export default function HomePage() {
           vectorSource.addFeatures(features);
         }
       }
-
-      // Apply other filters as needed...
-      // timeRange and locationRadius handling would go here
+      // If only date range is specified, use the existing date range filter
+      else if (dateRange.start && dateRange.end) {
+        const accidents = await getAccidentsByDateRange(
+          dateRange.start,
+          dateRange.end
+        );
+        // ... rest of the existing date range code
+      }
     } catch (error) {
       console.error("Error applying filters:", error);
     } finally {

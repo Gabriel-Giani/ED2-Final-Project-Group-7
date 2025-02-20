@@ -21,7 +21,7 @@ export const ACCIDENT_QUERIES = {
   // Get accidents within a polygon/boundary
   ACCIDENTS_IN_BOUNDARY: `
     SELECT *
-    FROM accidents
+    FROM ultimate-table
     WHERE ST_Within(
       location,
       ST_GeomFromGeoJSON($1)
@@ -31,7 +31,7 @@ export const ACCIDENT_QUERIES = {
   // Get accidents by date range
   ACCIDENTS_BY_DATE_RANGE: `
     SELECT *
-    FROM florida_crashes_2006
+    FROM ultimate-table
     WHERE crashdate >= $1 
     AND crashdate <= $2
   `,
@@ -39,7 +39,7 @@ export const ACCIDENT_QUERIES = {
   // Get accidents for specific date
   ACCIDENTS_BY_DATE: `
     SELECT *
-    FROM florida_crashes_2006
+    FROM ultimate-table
     WHERE crashdate = $1
   `,
 
@@ -48,9 +48,19 @@ export const ACCIDENT_QUERIES = {
     SELECT 
       COUNT(*) as accident_count
     FROM 
-      florida_crashes_2006
+      ultimate-table
     WHERE 
       crashdate >= $1 
       AND crashdate <= $2
+  `,
+
+  // Get accidents by date and time range
+  ACCIDENTS_BY_DATE_AND_TIME_RANGE: `
+    SELECT *
+    FROM ultimate-table
+    WHERE crashdate >= $1 
+    AND crashdate <= $2
+    AND crashtime >= $3
+    AND crashtime <= $4
   `,
 };

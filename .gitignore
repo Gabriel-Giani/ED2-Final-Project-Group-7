@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# csv files
+On2007_Trimmed.csv
+On2006_Trimmed.csv
+On2005_Trimmed.csv
+On2004_Trimmed.csv
+On2003_Trimmed.csv
+On2002_Trimmed.csv
