@@ -16,6 +16,7 @@ import { Circle, Style, Fill, Stroke, Text } from "ol/style";
 import Cluster from "ol/source/Cluster";
 import { supabase } from "../supabaseClient";
 import "../styles/map.css";
+import { getAccidentsInRadius } from "@/utils/db/accidents";
 
 const MIN_ZOOM = 6;
 const MAX_ZOOM = 19;
@@ -98,7 +99,9 @@ export default function OpenLayersMap({ onMapReady }) {
         .map((crash) => {
           if (crash.latitude && crash.longitude) {
             return new Feature({
-              geometry: new Point(fromLonLat([crash.longitude, crash.latitude])),
+              geometry: new Point(
+                fromLonLat([crash.longitude, crash.latitude])
+              ),
               properties: crash,
             });
           }
@@ -120,10 +123,15 @@ export default function OpenLayersMap({ onMapReady }) {
         mapRef.current.render();
         console.log("Map refreshed after adding features");
       }
-
     } catch (error) {
       console.error("Error in fetchCrashData:", error);
     }
+  }
+
+  // not sure what for?
+  async function loadNearbyAccidents(lat, lng) {
+    const accidents = await getAccidentsInRadius(lat, lng, 1000); // 1km radius
+    // Update map markers...
   }
 
   useEffect(() => {
@@ -160,10 +168,16 @@ export default function OpenLayersMap({ onMapReady }) {
             view.animate({ zoom: view.getZoom() + delta, duration: 250 });
           },
           fetchCrashData: fetchCrashData,
+          getVectorSource: () => clusterSource.getSource(),
         });
       }
     }
   }, [onMapReady]);
 
-  return <div ref={mapContainerRef} className="w-full h-full absolute top-0 left-0" />;
+  return (
+    <div
+      ref={mapContainerRef}
+      className="w-full h-full absolute top-0 left-0"
+    />
+  );
 }
