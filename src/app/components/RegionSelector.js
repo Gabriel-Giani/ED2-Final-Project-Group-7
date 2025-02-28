@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase, getUniqueColumnValues } from "../supabaseClient";
 
-// County code mapping
 const COUNTY_CODES = {
   "01": "Charlotte",
   "02": "Citrus",
@@ -88,6 +87,7 @@ export default function RegionSelector({
   onRegionChange = () => {},
   initialRegion = null,
   initialRegionName = null,
+  inFiltersMenu = false,
 }) {
   const [expanded, setExpanded] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState(
@@ -109,19 +109,16 @@ export default function RegionSelector({
         console.log("Fetching regions...");
 
         // Fetch counties using dotcounty codes
-        console.log("Fetching unique county codes...");
         try {
           // Get unique county codes
           const uniqueCountyCodes = await getUniqueColumnValues(
             "ultimate-table",
             "dotcounty",
             {
-              limit: 100, // We don't need too many, there are only 67 counties in Florida
+              limit: 100,
               cacheTTL: 3600000, // Cache for 1 hour
             }
           );
-
-          console.log("Unique county codes:", uniqueCountyCodes);
 
           // Map codes to county names
           const countyNames = uniqueCountyCodes
@@ -129,35 +126,29 @@ export default function RegionSelector({
             .filter(Boolean)
             .sort();
 
-          console.log("Mapped county names:", countyNames.length);
           setCounties(countyNames);
         } catch (countyFetchError) {
-          console.error("County fetch failed:", countyFetchError);
           // Set default counties using the mapping
           const defaultCounties = Object.values(COUNTY_CODES)
             .slice(0, 10)
             .sort();
-          console.log("Using default counties:", defaultCounties);
           setCounties(defaultCounties);
         }
 
         // Fetch cities
-        console.log("Fetching unique city names...");
         try {
           // Get unique city names
           const uniqueCities = await getUniqueColumnValues(
             "ultimate-table",
             "townname",
             {
-              limit: 500, // Get a reasonable number of cities
+              limit: 500,
               cacheTTL: 3600000, // Cache for 1 hour
             }
           );
 
-          console.log("Unique cities:", uniqueCities.length);
           setCities(uniqueCities.sort());
         } catch (cityFetchError) {
-          console.error("City fetch failed:", cityFetchError);
           // Set default cities
           const defaultCities = [
             "Miami",
@@ -171,11 +162,9 @@ export default function RegionSelector({
             "Sarasota",
             "Naples",
           ];
-          console.log("Using default cities:", defaultCities);
           setCities(defaultCities);
         }
       } catch (error) {
-        console.error("Error fetching regions:", error);
         // Set some default values in case of error
         const defaultCounties = Object.values(COUNTY_CODES).slice(0, 10).sort();
         const defaultCities = [
@@ -191,7 +180,6 @@ export default function RegionSelector({
           "Naples",
         ];
 
-        console.log("Using default values for counties and cities");
         setCounties(defaultCounties);
         setCities(defaultCities);
       } finally {
@@ -202,27 +190,52 @@ export default function RegionSelector({
     fetchRegions();
   }, []);
 
-  // Handle region type change
-  const handleRegionTypeChange = (regionType) => {
+  // Update local state when props change
+  useEffect(() => {
+    if (initialRegion) {
+      setSelectedRegion(initialRegion);
+    }
+    if (initialRegionName) {
+      setSelectedRegionName(initialRegionName);
+    }
+  }, [initialRegion, initialRegionName]);
+  
+  // Handle region type change - ONLY update local state
+  const handleRegionTypeChange = (regionType, e) => {
+    if (e) e.stopPropagation();
     setSelectedRegion(regionType);
     setSelectedRegionName("");
+    
+    // Pass to parent (which is using local state)
     onRegionChange(regionType, "");
   };
 
-  // Handle region name selection
-  const handleRegionNameChange = (name) => {
+  // Handle region name selection - ONLY update local state
+  const handleRegionNameChange = (name, e) => {
+    if (e) e.stopPropagation();
     setSelectedRegionName(name);
 
-    // If it's a county, pass the county code instead of the name
+    // Get county code if needed
+    let valueToPass = name;
     if (selectedRegion === "county") {
-      const countyCode = COUNTY_NAMES_TO_CODES[name];
-      console.log(`Selected county: ${name}, code: ${countyCode}`);
-      onRegionChange(selectedRegion, countyCode);
-    } else {
-      onRegionChange(selectedRegion, name);
+      valueToPass = COUNTY_NAMES_TO_CODES[name] || name;
     }
-
+    
+    // Pass to parent (which is using local state)
+    onRegionChange(selectedRegion, valueToPass);
     setExpanded(false);
+  };
+
+  // Toggle expanded state with propagation stopped
+  const toggleExpanded = (e) => {
+    e.stopPropagation();
+    setExpanded(!expanded);
+  };
+
+  // Handle search input with propagation stopped
+  const handleSearchChange = (e) => {
+    e.stopPropagation();
+    setSearchTerm(e.target.value);
   };
 
   // Filter regions based on search term
@@ -240,6 +253,67 @@ export default function RegionSelector({
     return [];
   };
 
+  // If in filters menu, render a simplified version
+  if (inFiltersMenu) {
+    return (
+      <div className="bg-gray-200 rounded p-3" onClick={(e) => e.stopPropagation()}>
+        {/* Show the selected region name or prompt to select one */}
+        <div className="flex justify-between items-center mb-2">
+          <div className="font-medium">
+            {selectedRegionName
+              ? `${selectedRegionName}`
+              : `Select a ${selectedRegion}`}
+          </div>
+          <button
+            className="text-gray-500 hover:text-gray-700"
+            onClick={toggleExpanded}
+          >
+            {expanded ? "▲" : "▼"}
+          </button>
+        </div>
+
+        {/* Search box and results */}
+        {expanded && (
+          <div>
+            <input
+              type="text"
+              placeholder={`Search ${selectedRegion}...`}
+              className="w-full p-2 mb-2 bg-white border border-gray-300 rounded"
+              value={searchTerm}
+              onChange={handleSearchChange}
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            <div className="max-h-40 overflow-y-auto bg-white rounded border border-gray-300">
+              {loading ? (
+                <div className="p-2 text-center text-gray-500">Loading...</div>
+              ) : filteredRegions().length > 0 ? (
+                <ul>
+                  {filteredRegions().map((name, index) => (
+                    <li
+                      key={index}
+                      className={`p-2 hover:bg-gray-100 cursor-pointer ${
+                        name === selectedRegionName ? "bg-blue-100" : ""
+                      }`}
+                      onClick={(e) => handleRegionNameChange(name, e)}
+                    >
+                      {name}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="p-2 text-center text-gray-500">
+                  No {selectedRegion} found
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Otherwise, render the original standalone version
   return (
     <div className="absolute top-16 left-4 z-10">
       <motion.div
@@ -247,10 +321,11 @@ export default function RegionSelector({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         className="bg-gray-900 bg-opacity-90 text-white rounded-lg shadow-lg overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
       >
         <div
           className="p-3 font-bold border-b border-gray-700 flex justify-between items-center cursor-pointer"
-          onClick={() => setExpanded(!expanded)}
+          onClick={toggleExpanded}
         >
           <h3>
             {selectedRegion === "state"
@@ -259,7 +334,7 @@ export default function RegionSelector({
               ? `${selectedRegionName} ${selectedRegion}`
               : `Select ${selectedRegion}`}
           </h3>
-          <button className="text-gray-400 hover:text-white">
+          <button className="text-gray-400 hover:text-white" onClick={toggleExpanded}>
             {expanded ? "▲" : "▼"}
           </button>
         </div>
@@ -281,7 +356,7 @@ export default function RegionSelector({
                         ? "bg-blue-600"
                         : "bg-gray-700 hover:bg-gray-600"
                     }`}
-                    onClick={() => handleRegionTypeChange("state")}
+                    onClick={(e) => handleRegionTypeChange("state", e)}
                   >
                     State
                   </button>
@@ -291,7 +366,7 @@ export default function RegionSelector({
                         ? "bg-blue-600"
                         : "bg-gray-700 hover:bg-gray-600"
                     }`}
-                    onClick={() => handleRegionTypeChange("county")}
+                    onClick={(e) => handleRegionTypeChange("county", e)}
                   >
                     County
                   </button>
@@ -301,7 +376,7 @@ export default function RegionSelector({
                         ? "bg-blue-600"
                         : "bg-gray-700 hover:bg-gray-600"
                     }`}
-                    onClick={() => handleRegionTypeChange("city")}
+                    onClick={(e) => handleRegionTypeChange("city", e)}
                   >
                     City
                   </button>
@@ -316,7 +391,8 @@ export default function RegionSelector({
                       placeholder={`Search ${selectedRegion}...`}
                       className="w-full p-2 bg-gray-800 border border-gray-700 rounded text-white"
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={handleSearchChange}
+                      onClick={(e) => e.stopPropagation()}
                     />
                   </div>
 
@@ -337,7 +413,7 @@ export default function RegionSelector({
                             className={`p-3 hover:bg-gray-800 cursor-pointer ${
                               name === selectedRegionName ? "bg-gray-800" : ""
                             }`}
-                            onClick={() => handleRegionNameChange(name)}
+                            onClick={(e) => handleRegionNameChange(name, e)}
                           >
                             {name}
                           </li>

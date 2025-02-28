@@ -30,6 +30,20 @@ const MIN_ZOOM = 6;
 const MAX_ZOOM = 19;
 const DEFAULT_ZOOM = MIN_ZOOM;
 
+// Florida bounding box coordinates (with small margin)
+const FLORIDA_EXTENT = [
+  -87.8, // Western boundary (slightly west of Pensacola)
+  24.2,  // Southern boundary (includes the Keys)
+  -79.7, // Eastern boundary (past Jacksonville)
+  31.2   // Northern boundary (slightly north of the Florida/Georgia border)
+];
+
+// Convert the geographic coordinates to the projection used by OpenLayers
+const FLORIDA_EXTENT_PROJ = [
+  ...fromLonLat([FLORIDA_EXTENT[0], FLORIDA_EXTENT[1]]),
+  ...fromLonLat([FLORIDA_EXTENT[2], FLORIDA_EXTENT[3]])
+];
+
 // Crash point style
 const crashPointStyle = new Style({
   image: new Circle({
@@ -90,14 +104,23 @@ function getRoadSegmentStyle(feature) {
 export default function HotspotMap({
   onMapReady,
   showPoints = false,
-  filterRegion = null, // 'state', 'county', or 'city'
-  regionName = null, // county or city name if filterRegion is set
+  filterRegion = null,
+  regionName = null,
   dateRange = null,
   timeRange = null,
+  shouldRefresh = false, // Control when to refresh
 }) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const [loading, setLoading] = useState(false);
+  
+  // Store filter state internally to prevent re-renders
+  const filterStateRef = useRef({
+    filterRegion,
+    regionName,
+    dateRange,
+    timeRange
+  });
 
   // Create sources for different layers
   const pointsSource = useRef(new VectorSource());
@@ -128,10 +151,21 @@ export default function HotspotMap({
     zoom: DEFAULT_ZOOM,
   });
 
+  // Update internal filter state without triggering re-renders
+  useEffect(() => {
+    filterStateRef.current = {
+      filterRegion,
+      regionName,
+      dateRange,
+      timeRange
+    };
+  }, [filterRegion, regionName, dateRange, timeRange]);
+
   // Function to fetch and display hotspots
   async function fetchHotspots() {
     setLoading(true);
     try {
+      const { filterRegion, regionName, dateRange, timeRange } = filterStateRef.current;
       console.log(`Fetching hotspots for ${regionName || "all of Florida"}...`);
 
       let hotspots = [];
@@ -237,6 +271,7 @@ export default function HotspotMap({
   async function fetchCrashData() {
     try {
       console.log("Fetching crash data points...");
+      const { dateRange, timeRange } = filterStateRef.current;
 
       let data;
 
@@ -317,12 +352,14 @@ export default function HotspotMap({
     }
   }, [showPoints]);
 
-  // Update when filter parameters change
+  // IMPORTANT: This is the key effect change - ONLY refresh when shouldRefresh is true
+  // and remove all other dependencies from the array
   useEffect(() => {
-    if (mapRef.current) {
+    if (mapRef.current && shouldRefresh) {
+      console.log("Map refreshing due to explicit refresh request");
       fetchHotspots();
     }
-  }, [filterRegion, regionName, dateRange, timeRange]);
+  }, [shouldRefresh]); // <-- THIS IS THE KEY CHANGE: Only shouldRefresh triggers map refresh
 
   // Initialize map
   useEffect(() => {
@@ -340,12 +377,14 @@ export default function HotspotMap({
           zoom: viewStateRef.current.zoom,
           minZoom: MIN_ZOOM,
           maxZoom: MAX_ZOOM,
+          extent: FLORIDA_EXTENT_PROJ,
+          constrainOnlyCenter: true
         }),
       });
 
       mapRef.current = mapInstance;
 
-      // Fetch hotspots when the map is initialized
+      // Initial fetch of hotspots when the map is initialized
       fetchHotspots();
 
       if (onMapReady) {
@@ -372,7 +411,7 @@ export default function HotspotMap({
         mapRef.current = null;
       }
     };
-  }, [onMapReady]);
+  }, [onMapReady]); // Only depends on onMapReady
 
   return (
     <div className="relative w-full h-full">
