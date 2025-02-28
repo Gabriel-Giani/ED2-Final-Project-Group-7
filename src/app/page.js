@@ -2,6 +2,11 @@
 
 import React, { useState, useRef } from "react";
 import OpenLayersMap from "./components/map";
+import HotspotMap from "./components/HotspotMap";
+import TopHotspots from "./components/TopHotspots";
+import RegionSelector from "./components/RegionSelector";
+import ViewToggle from "./components/ViewToggle";
+import SupabaseTest from "./components/SupabaseTest";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   getAccidentsByDateRange,
@@ -21,6 +26,13 @@ export default function HomePage() {
   const zoomIntervalRef = useRef(null);
   const holdTimeoutRef = useRef(null);
   const isHoldingRef = useRef(false);
+
+  // View mode state
+  const [showPoints, setShowPoints] = useState(false);
+
+  // Region filter state
+  const [filterRegion, setFilterRegion] = useState("state");
+  const [regionName, setRegionName] = useState("");
 
   // Called by map.js once the map is ready
   const handleMapReady = (mapInstance) => {
@@ -156,6 +168,30 @@ export default function HomePage() {
   const openAbout = () => setShowAbout(true);
   const closeAbout = () => setShowAbout(false);
 
+  // Handle region change
+  const handleRegionChange = (region, name) => {
+    setFilterRegion(region);
+    setRegionName(name);
+  };
+
+  // Handle view mode toggle
+  const handleViewToggle = () => {
+    setShowPoints(!showPoints);
+  };
+
+  // Handle hotspot click
+  const handleHotspotClick = (hotspot) => {
+    if (mapRef.current && hotspot.center) {
+      // Center map on hotspot
+      const view = mapRef.current.getView();
+      view.animate({
+        center: fromLonLat(hotspot.center),
+        zoom: 14,
+        duration: 500,
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-gray-900 text-white">
       {/* NAV BAR */}
@@ -172,7 +208,7 @@ export default function HomePage() {
         </motion.button>
 
         {/* TITLE */}
-        <h1 className="text-lg font-bold">Don't Drive Here</h1>
+        <h1 className="text-lg font-bold">Don&apos;t Drive Here</h1>
 
         {/* ABOUT BUTTON */}
         <motion.button
@@ -311,10 +347,45 @@ export default function HomePage() {
 
       {/* MAIN CONTENT: MAP + ZOOM BUTTONS */}
       <div className="relative flex-1">
+        {/* Supabase Test Component - for debugging */}
+        <div className="absolute top-16 right-40 z-50">
+          <SupabaseTest />
+        </div>
+
         {/* MAP */}
         <div className="w-full h-full rounded-xl overflow-hidden">
-          <OpenLayersMap onMapReady={handleMapReady} />
+          <HotspotMap
+            onMapReady={handleMapReady}
+            showPoints={showPoints}
+            filterRegion={filterRegion}
+            regionName={regionName}
+            dateRange={dateRange.start && dateRange.end ? dateRange : null}
+            timeRange={
+              useTimeFilter && timeRange.start && timeRange.end
+                ? timeRange
+                : null
+            }
+          />
         </div>
+
+        {/* Region Selector */}
+        <RegionSelector
+          onRegionChange={handleRegionChange}
+          initialRegion={filterRegion}
+          initialRegionName={regionName}
+        />
+
+        {/* View Toggle */}
+        <ViewToggle showPoints={showPoints} onToggle={handleViewToggle} />
+
+        {/* Top Hotspots */}
+        <TopHotspots
+          dateRange={dateRange.start && dateRange.end ? dateRange : null}
+          timeRange={
+            useTimeFilter && timeRange.start && timeRange.end ? timeRange : null
+          }
+          onHotspotClick={handleHotspotClick}
+        />
 
         {/* ZOOM BUTTONS */}
         <div className="absolute top-4 right-4 flex flex-col space-y-1 z-20">
@@ -374,8 +445,13 @@ export default function HomePage() {
             >
               <h2 className="text-xl font-bold mb-4">About Us</h2>
               <p className="mb-4">
-                We're here to help you see where accidents most commonly happen
-                so you can plan safe routes. Stay safe out there!
+                We&apos;re here to help you see where accidents most commonly
+                happen so you can plan safe routes. Stay safe out there!
+              </p>
+              <p className="mb-4">
+                The heatmap shows accident hotspots on road segments, with
+                colors ranging from green (low intensity) to red (high
+                intensity).
               </p>
               <motion.button
                 type="button"
