@@ -83,6 +83,188 @@ const COUNTY_NAMES_TO_CODES = Object.entries(COUNTY_CODES).reduce(
   {}
 );
 
+// Comprehensive list of Florida cities
+const FLORIDA_CITIES = [
+  "Alachua",
+  "Altamonte Springs",
+  "Anna Maria",
+  "Apalachicola",
+  "Apopka",
+  "Atlantic Beach",
+  "Auburndale",
+  "Aventura",
+  "Avon Park",
+  "Bal Harbour",
+  "Bartow",
+  "Bay Harbor Islands",
+  "Boca Raton",
+  "Bonita Springs",
+  "Boynton Beach",
+  "Bradenton",
+  "Brooksville",
+  "Cape Canaveral",
+  "Cape Coral",
+  "Casselberry",
+  "Celebration",
+  "Chipley",
+  "Cinco Bayou",
+  "Clearwater",
+  "Clermont",
+  "Clewiston",
+  "Cocoa",
+  "Cocoa Beach",
+  "Coconut Creek",
+  "Coral Gables",
+  "Coral Springs",
+  "Crystal River",
+  "Dania Beach",
+  "Davie",
+  "Daytona Beach",
+  "Deerfield Beach",
+  "DeFuniak Springs",
+  "DeLand",
+  "Delray Beach",
+  "Deltona",
+  "Destin",
+  "Dunedin",
+  "Eagle Lake",
+  "Edgewater",
+  "Edgewood",
+  "Eustis",
+  "Fort Lauderdale",
+  "Fort Meade",
+  "Fort Myers",
+  "Fort Myers Beach",
+  "Fort Pierce",
+  "Fort Walton Beach",
+  "Fruitland Park",
+  "Gainesville",
+  "Greenacres",
+  "Green Cove Springs",
+  "Gulf Breeze",
+  "Gulfport",
+  "Haines City",
+  "Hallandale Beach",
+  "Hawthorne",
+  "Hialeah",
+  "Hialeah Gardens",
+  "Highland Beach",
+  "Hollywood",
+  "Holly Hill",
+  "Holmes Beach",
+  "Homestead",
+  "Hypoluxo",
+  "Indialantic",
+  "Jacksonville",
+  "Juno Beach",
+  "Jupiter",
+  "Key Biscayne",
+  "Key West",
+  "Kissimmee",
+  "LaBelle",
+  "Lady Lake",
+  "Lake Alfred",
+  "Lakeland",
+  "Lake Mary",
+  "Lake Park",
+  "Lake Wales",
+  "Lake Worth",
+  "Lantana",
+  "Largo",
+  "Lauderdale By The Sea",
+  "Lauderhill",
+  "Leesburg",
+  "Lighthouse Point",
+  "Longboat Key",
+  "Longwood",
+  "Maitland",
+  "Marco Island",
+  "Margate",
+  "Melbourne",
+  "Melbourne Beach",
+  "Miami",
+  "Miami Beach",
+  "Milton",
+  "Minneola",
+  "Miramar",
+  "Mount Dora",
+  "Naples",
+  "Neptune Beach",
+  "New Port Richey",
+  "New Smyrna Beach",
+  "Niceville",
+  "North Miami",
+  "North Miami Beach",
+  "North Port",
+  "Oakland Park",
+  "Ocala",
+  "Ocean Ridge",
+  "Ocoee",
+  "Okeechobee",
+  "Oldsmar",
+  "Orange Park",
+  "Orlando",
+  "Ormond Beach",
+  "Oviedo",
+  "Palatka",
+  "Palm Bay",
+  "Palm Beach",
+  "Palm Beach Gardens",
+  "Palm Coast",
+  "Palmetto",
+  "Panama City",
+  "Panama City Beach",
+  "Pembroke Pines",
+  "Pensacola",
+  "Pinecrest",
+  "Pinellas Park",
+  "Plant City",
+  "Plantation",
+  "Pompano Beach",
+  "Ponce Inlet",
+  "Port Orange",
+  "Port St. Lucie",
+  "Punta Gorda",
+  "Rockledge",
+  "Royal Palm Beach",
+  "St. Augustine",
+  "St. Augustine Beach",
+  "St. Cloud",
+  "St. Pete Beach",
+  "St. Petersburg",
+  "Safety Harbor",
+  "Sanford",
+  "Sanibel",
+  "Sarasota",
+  "Satellite Beach",
+  "Seaside",
+  "Sebastian",
+  "Sewall's Point",
+  "Shalimar",
+  "Stuart",
+  "Surfside",
+  "Tallahassee",
+  "Tamarac",
+  "Tampa",
+  "Tarpon Springs",
+  "Tavares",
+  "Temple Terrace",
+  "Titusville",
+  "Treasure Island",
+  "Valparaiso",
+  "Venice",
+  "Vero Beach",
+  "Wellington",
+  "West Melbourne",
+  "West Palm Beach",
+  "Weston",
+  "Wilton Manors",
+  "Winter Garden",
+  "Winter Haven",
+  "Winter Park",
+  "Winter Springs",
+];
+
 export default function RegionSelector({
   onRegionChange = () => {},
   initialRegion = null,
@@ -108,80 +290,16 @@ export default function RegionSelector({
       try {
         console.log("Fetching regions...");
 
-        // Fetch counties using dotcounty codes
-        try {
-          // Get unique county codes
-          const uniqueCountyCodes = await getUniqueColumnValues(
-            "ultimate-table",
-            "dotcounty",
-            {
-              limit: 100,
-              cacheTTL: 3600000, // Cache for 1 hour
-            }
-          );
+        // Set all Florida counties from COUNTY_CODES
+        const allCounties = Object.values(COUNTY_CODES).sort();
+        setCounties(allCounties);
 
-          // Map codes to county names
-          const countyNames = uniqueCountyCodes
-            .map((code) => COUNTY_CODES[code])
-            .filter(Boolean)
-            .sort();
-
-          setCounties(countyNames);
-        } catch (countyFetchError) {
-          // Set default counties using the mapping
-          const defaultCounties = Object.values(COUNTY_CODES)
-            .slice(0, 10)
-            .sort();
-          setCounties(defaultCounties);
-        }
-
-        // Fetch cities
-        try {
-          // Get unique city names
-          const uniqueCities = await getUniqueColumnValues(
-            "ultimate-table",
-            "townname",
-            {
-              limit: 500,
-              cacheTTL: 3600000, // Cache for 1 hour
-            }
-          );
-
-          setCities(uniqueCities.sort());
-        } catch (cityFetchError) {
-          // Set default cities
-          const defaultCities = [
-            "Miami",
-            "Orlando",
-            "Tampa",
-            "Jacksonville",
-            "Fort Lauderdale",
-            "Tallahassee",
-            "Gainesville",
-            "Pensacola",
-            "Sarasota",
-            "Naples",
-          ];
-          setCities(defaultCities);
-        }
+        // Set cities from our predefined list
+        setCities(FLORIDA_CITIES);
       } catch (error) {
-        // Set some default values in case of error
-        const defaultCounties = Object.values(COUNTY_CODES).slice(0, 10).sort();
-        const defaultCities = [
-          "Miami",
-          "Orlando",
-          "Tampa",
-          "Jacksonville",
-          "Fort Lauderdale",
-          "Tallahassee",
-          "Gainesville",
-          "Pensacola",
-          "Sarasota",
-          "Naples",
-        ];
-
-        setCounties(defaultCounties);
-        setCities(defaultCities);
+        console.error("Error in fetchRegions:", error);
+        setCounties([]);
+        setCities([]);
       } finally {
         setLoading(false);
       }
@@ -199,13 +317,13 @@ export default function RegionSelector({
       setSelectedRegionName(initialRegionName);
     }
   }, [initialRegion, initialRegionName]);
-  
+
   // Handle region type change - ONLY update local state
   const handleRegionTypeChange = (regionType, e) => {
     if (e) e.stopPropagation();
     setSelectedRegion(regionType);
     setSelectedRegionName("");
-    
+
     // Pass to parent (which is using local state)
     onRegionChange(regionType, "");
   };
@@ -220,7 +338,7 @@ export default function RegionSelector({
     if (selectedRegion === "county") {
       valueToPass = COUNTY_NAMES_TO_CODES[name] || name;
     }
-    
+
     // Pass to parent (which is using local state)
     onRegionChange(selectedRegion, valueToPass);
     setExpanded(false);
@@ -256,7 +374,10 @@ export default function RegionSelector({
   // If in filters menu, render a simplified version
   if (inFiltersMenu) {
     return (
-      <div className="bg-gray-200 rounded p-3" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="bg-gray-200 rounded p-3"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Show the selected region name or prompt to select one */}
         <div className="flex justify-between items-center mb-2">
           <div className="font-medium">
@@ -334,7 +455,10 @@ export default function RegionSelector({
               ? `${selectedRegionName} ${selectedRegion}`
               : `Select ${selectedRegion}`}
           </h3>
-          <button className="text-gray-400 hover:text-white" onClick={toggleExpanded}>
+          <button
+            className="text-gray-400 hover:text-white"
+            onClick={toggleExpanded}
+          >
             {expanded ? "▲" : "▼"}
           </button>
         </div>
