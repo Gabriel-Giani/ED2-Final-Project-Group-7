@@ -362,10 +362,14 @@ export async function getStateHotspots(prefetchedData?: any[]) {
   try {
     console.log("Getting state-wide hotspots");
 
-    let data = prefetchedData;
+    // Validate prefetchedData
+    let data: any[] = [];
+    if (prefetchedData && Array.isArray(prefetchedData)) {
+      data = prefetchedData;
+    }
 
-    // If no prefetched data, fetch from Supabase
-    if (!data || data.length === 0) {
+    // If no valid prefetched data, fetch from Supabase
+    if (data.length === 0) {
       console.log("No prefetched data, fetching from Supabase...");
       const { data: fetchedData, error } = await supabase
         .from("ultimate-table")
@@ -374,6 +378,11 @@ export async function getStateHotspots(prefetchedData?: any[]) {
 
       if (error) {
         console.error("Error fetching state data:", error);
+        return { hotspots: [], roadSegments: [] };
+      }
+
+      if (!fetchedData || !Array.isArray(fetchedData)) {
+        console.error("Invalid data received from Supabase:", fetchedData);
         return { hotspots: [], roadSegments: [] };
       }
 
@@ -400,16 +409,27 @@ export async function getTopHotspots(
   limit: number = 10,
   prefetchedData?: any[]
 ) {
-  // Get state hotspots and return only the top N by intensity
-  const result = await getStateHotspots(prefetchedData);
+  try {
+    // Validate prefetchedData before passing it
+    let validPrefetchedData: any[] | undefined;
+    if (prefetchedData && Array.isArray(prefetchedData)) {
+      validPrefetchedData = prefetchedData;
+    }
 
-  // Sort hotspots by intensity (highest first)
-  const sortedHotspots = [...result.hotspots].sort(
-    (a, b) => b.intensity - a.intensity
-  );
+    // Get state hotspots and return only the top N by intensity
+    const result = await getStateHotspots(validPrefetchedData);
 
-  // Return only the top N
-  return sortedHotspots.slice(0, limit);
+    // Sort hotspots by intensity (highest first)
+    const sortedHotspots = [...result.hotspots].sort(
+      (a, b) => b.intensity - a.intensity
+    );
+
+    // Return only the top N
+    return sortedHotspots.slice(0, limit);
+  } catch (error) {
+    console.error("Error in getTopHotspots:", error);
+    return [];
+  }
 }
 
 // Function to get road segments with accident data

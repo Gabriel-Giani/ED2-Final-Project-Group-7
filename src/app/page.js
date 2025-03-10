@@ -102,7 +102,7 @@ export default function HomePage() {
     try {
       // Set map refresh flag to true
       setMapShouldRefresh(true);
-      
+
       // Check if we have valid dates
       if (dateRange.start && dateRange.end) {
         let accidents;
@@ -149,7 +149,7 @@ export default function HomePage() {
       console.error("Error applying filters:", error);
     } finally {
       setIsLoading(false);
-      
+
       // Reset the refresh flag after a short delay
       setTimeout(() => {
         setMapShouldRefresh(false);
@@ -165,14 +165,14 @@ export default function HomePage() {
     setLocationRadius("");
     setFilterRegion("state");
     setRegionName("");
-    
+
     // Set map refresh flag to true
     setMapShouldRefresh(true);
-    
+
     if (mapRef.current) {
       mapRef.current.fetchCrashData({});
     }
-    
+
     // Reset the refresh flag after a short delay
     setTimeout(() => {
       setMapShouldRefresh(false);
