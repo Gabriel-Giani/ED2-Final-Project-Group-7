@@ -37,14 +37,35 @@ export default function HomePage() {
     mapRef.current = mapInstance;
   };
 
-  // FILTER states
+  // BASIC FILTER states
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [timeRange, setTimeRange] = useState({ start: "", end: "" });
-  const [locationRadius, setLocationRadius] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Add new state for time filter toggle
   const [useTimeFilter, setUseTimeFilter] = useState(false);
+  const [locationRadius, setLocationRadius] = useState("");
+
+  // ADVANCED FILTER states - will be populated by the FiltersButton component
+  const [advancedFilters, setAdvancedFilters] = useState({
+    dayOfWeek: "",
+    roadName: "",
+    intersectingRoad: "",
+    injuryLevel: "",
+    alcoholDrugs: "",
+    lightCondition: "",
+    weatherCondition: "",
+    roadSurfaceCondition: "",
+    aggressiveDriving: false,
+    pedestrianInvolved: false,
+    bicycleInvolved: false,
+    motorcycleInvolved: false,
+    teenInvolved: false,
+    elderlyInvolved: false,
+    impaired: false,
+    direction: "",
+    damageMin: "",
+    damageMax: ""
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
 
   // Single step zoom (for clicks)
   const handleSingleZoom = (direction) => {
@@ -94,56 +115,151 @@ export default function HomePage() {
     stopAllZooming();
   };
 
-  // FILTERS - Modified to control map refresh
-  const applyFilters = async () => {
+  // Build Supabase query params based on all filters
+  const buildQueryParams = (filters) => {
+    const params = {};
+    
+    // Only add non-empty filters to params
+    if (filters.filterRegion && filters.regionName) {
+      if (filters.filterRegion === "county") {
+        params.dotcounty = filters.regionName;
+      } else if (filters.filterRegion === "city") {
+        params.townname = filters.regionName;
+      }
+    }
+    
+    if (filters.dateRange?.start && filters.dateRange?.end) {
+      params.dateStart = filters.dateRange.start;
+      params.dateEnd = filters.dateRange.end;
+    }
+    
+    if (filters.useTimeFilter && filters.timeRange?.start && filters.timeRange?.end) {
+      params.timeStart = filters.timeRange.start;
+      params.timeEnd = filters.timeRange.end;
+    }
+    
+    if (filters.dayOfWeek) {
+      params.dayofweek = filters.dayOfWeek;
+    }
+    
+    if (filters.roadName) {
+      params.onroadname = filters.roadName;
+    }
+    
+    if (filters.intersectingRoad) {
+      params.inroadname = filters.intersectingRoad;
+    }
+    
+    if (filters.injuryLevel) {
+      params.highestinj = filters.injuryLevel;
+    }
+    
+    if (filters.alcoholDrugs) {
+      params.crshalcdrg = filters.alcoholDrugs;
+    }
+    
+    if (filters.lightCondition) {
+      params.lightcond = filters.lightCondition;
+    }
+    
+    if (filters.weatherCondition) {
+      params.weathcond = filters.weatherCondition;
+    }
+    
+    if (filters.roadSurfaceCondition) {
+      params.rdsurfcond = filters.roadSurfaceCondition;
+    }
+    
+    if (filters.direction) {
+      params.refdirect = filters.direction;
+    }
+    
+    if (filters.damageMin) {
+      params.damageMin = filters.damageMin;
+    }
+    
+    if (filters.damageMax) {
+      params.damageMax = filters.damageMax;
+    }
+    
+    // Boolean filters - only add if true
+    if (filters.aggressiveDriving) {
+      params.fl_aggrsv = "Y";
+    }
+    
+    if (filters.pedestrianInvolved) {
+      params.fl_vru_ped = "Y";
+    }
+    
+    if (filters.bicycleInvolved) {
+      params.fl_vru_bik = "Y";
+    }
+    
+    if (filters.motorcycleInvolved) {
+      params.fl_vru_mot = "Y";
+    }
+    
+    if (filters.teenInvolved) {
+      params.fl_ar_teen = "Y";
+    }
+    
+    if (filters.elderlyInvolved) {
+      params.fl_ar_ag = "Y";
+    }
+    
+    if (filters.impaired) {
+      params.flag_imp = "Y";
+    }
+    
+    return params;
+  };
+
+  // FILTERS - Modified to handle all the new filters
+  const applyFilters = async (filters) => {
     if (!mapRef.current) return;
 
     setIsLoading(true);
     try {
+      // Update advanced filters state with values from FiltersButton component
+      if (filters) {
+        setAdvancedFilters({
+          dayOfWeek: filters.dayOfWeek || "",
+          roadName: filters.roadName || "",
+          intersectingRoad: filters.intersectingRoad || "",
+          injuryLevel: filters.injuryLevel || "",
+          alcoholDrugs: filters.alcoholDrugs || "",
+          lightCondition: filters.lightCondition || "",
+          weatherCondition: filters.weatherCondition || "",
+          roadSurfaceCondition: filters.roadSurfaceCondition || "",
+          aggressiveDriving: filters.aggressiveDriving || false,
+          pedestrianInvolved: filters.pedestrianInvolved || false,
+          bicycleInvolved: filters.bicycleInvolved || false,
+          motorcycleInvolved: filters.motorcycleInvolved || false,
+          teenInvolved: filters.teenInvolved || false,
+          elderlyInvolved: filters.elderlyInvolved || false,
+          impaired: filters.impaired || false,
+          direction: filters.direction || "",
+          damageMin: filters.damageMin || "",
+          damageMax: filters.damageMax || ""
+        });
+      }
+
       // Set map refresh flag to true
       setMapShouldRefresh(true);
 
-      // Check if we have valid dates
-      if (dateRange.start && dateRange.end) {
-        let accidents;
+      // Build query params from all filters
+      const queryParams = buildQueryParams(filters || {
+        filterRegion,
+        regionName,
+        dateRange,
+        timeRange,
+        useTimeFilter,
+        ...advancedFilters
+      });
 
-        // Apply date and time filter if time filter is enabled
-        if (useTimeFilter && timeRange.start && timeRange.end) {
-          accidents = await getAccidentsByDateAndTimeRange(
-            dateRange.start,
-            dateRange.end,
-            timeRange.start,
-            timeRange.end
-          );
-        } else {
-          // Otherwise just filter by date
-          accidents = await getAccidentsByDateRange(
-            dateRange.start,
-            dateRange.end
-          );
-        }
-
-        // Convert accidents to features and update map
-        if (mapRef.current && accidents) {
-          const features = accidents
-            .map((crash) => {
-              if (crash.latitude && crash.longitude) {
-                return new Feature({
-                  geometry: new Point(
-                    fromLonLat([crash.longitude, crash.latitude])
-                  ),
-                  properties: crash,
-                });
-              }
-              return null;
-            })
-            .filter(Boolean);
-
-          // Update the vector source with new features
-          const vectorSource = mapRef.current.getVectorSource();
-          vectorSource.clear();
-          vectorSource.addFeatures(features);
-        }
+      // Pass the query params to the map for fetching data
+      if (mapRef.current.fetchFilteredData) {
+        await mapRef.current.fetchFilteredData(queryParams);
       }
     } catch (error) {
       console.error("Error applying filters:", error);
@@ -157,19 +273,42 @@ export default function HomePage() {
     }
   };
 
-  // Reset filters - Modified to control map refresh
+  // Reset filters - Modified to reset all filters
   const resetFilters = () => {
+    // Reset basic filters
     setDateRange({ start: "", end: "" });
     setTimeRange({ start: "", end: "" });
     setUseTimeFilter(false);
     setLocationRadius("");
     setFilterRegion("state");
     setRegionName("");
+    
+    // Reset advanced filters
+    setAdvancedFilters({
+      dayOfWeek: "",
+      roadName: "",
+      intersectingRoad: "",
+      injuryLevel: "",
+      alcoholDrugs: "",
+      lightCondition: "",
+      weatherCondition: "",
+      roadSurfaceCondition: "",
+      aggressiveDriving: false,
+      pedestrianInvolved: false,
+      bicycleInvolved: false,
+      motorcycleInvolved: false,
+      teenInvolved: false,
+      elderlyInvolved: false,
+      impaired: false,
+      direction: "",
+      damageMin: "",
+      damageMax: ""
+    });
 
     // Set map refresh flag to true
     setMapShouldRefresh(true);
 
-    if (mapRef.current) {
+    if (mapRef.current && mapRef.current.fetchCrashData) {
       mapRef.current.fetchCrashData({});
     }
 
@@ -201,7 +340,7 @@ export default function HomePage() {
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-gray-900 text-white">
       {/* NAV BAR */}
       <div className="h-14 flex items-center justify-between px-4 bg-gray-900 border-b border-gray-700 relative">
-        {/* FILTERS BUTTON - Now a separate component */}
+        {/* FILTERS BUTTON */}
         <FiltersButton
           filterRegion={filterRegion}
           setFilterRegion={setFilterRegion}
@@ -223,7 +362,7 @@ export default function HomePage() {
         {/* TITLE */}
         <h1 className="text-lg font-bold">Don&apos;t Drive Here</h1>
 
-        {/* ABOUT BUTTON - Now a separate component */}
+        {/* ABOUT BUTTON */}
         <AboutButton />
       </div>
 
@@ -242,6 +381,7 @@ export default function HomePage() {
                 ? timeRange
                 : null
             }
+            advancedFilters={advancedFilters}
             shouldRefresh={mapShouldRefresh}
           />
         </div>
@@ -255,6 +395,7 @@ export default function HomePage() {
           timeRange={
             useTimeFilter && timeRange.start && timeRange.end ? timeRange : null
           }
+          advancedFilters={advancedFilters}
           onHotspotClick={handleHotspotClick}
         />
 
