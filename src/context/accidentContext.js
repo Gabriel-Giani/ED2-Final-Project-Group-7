@@ -2,7 +2,7 @@
 
 // src/context/accidentContext.js
 import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
-import { accidentService } from '@/services/dataService';
+import { accidentDataService } from '@/services/accidentDataService';
 
 // Initial state
 const initialState = {
@@ -118,11 +118,11 @@ export const AccidentProvider = ({ children }) => {
   useEffect(() => {
     const fetchRegionOptions = async () => {
       // Fetch counties
-      const counties = await accidentService.getRegionOptions('county');
+      const counties = await accidentDataService.getRegionOptions('county');
       dispatch({ type: 'SET_REGION_OPTIONS', regionType: 'county', payload: counties });
       
       // Fetch cities
-      const cities = await accidentService.getRegionOptions('city');
+      const cities = await accidentDataService.getRegionOptions('city');
       dispatch({ type: 'SET_REGION_OPTIONS', regionType: 'city', payload: cities });
     };
     
@@ -136,13 +136,13 @@ export const AccidentProvider = ({ children }) => {
       
       try {
         // Build query params from filters
-        const queryParams = accidentService.buildQueryParams(state.filters);
+        const queryParams = accidentDataService.buildQueryParams(state.filters);
         
         // Fetch accident data
-        const accidents = await accidentService.getFilteredAccidents(queryParams);
+        const accidents = await accidentDataService.getFilteredAccidents(queryParams);
         
         // Process the data
-        const { hotspots, roadSegments } = accidentService.processAccidentData(accidents);
+        const { hotspots, roadSegments } = accidentDataService.processAccidentData(accidents);
         
         // Update state
         dispatch({ type: 'SET_ACCIDENTS', payload: accidents });
@@ -192,7 +192,6 @@ export const AccidentProvider = ({ children }) => {
   };
   
   // Process filters and send to parent
-  // Used by FilterButton component to handle Apply button
   const processAndApplyFilters = (localFilters) => {
     updateFilters(localFilters);
     triggerDataFetch();
