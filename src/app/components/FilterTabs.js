@@ -45,13 +45,6 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
       { value: "4", label: "Incapacitating injury" },
       { value: "5", label: "Fatal injury" }
     ],
-    alcoholDrugs: [
-      { value: "", label: "Any" },
-      { value: "0", label: "None" },
-      { value: "1", label: "Alcohol involved" },
-      { value: "2", label: "Drugs involved" },
-      { value: "3", label: "Alcohol and drugs involved" }
-    ],
     lightCondition: [
       { value: "", label: "Any light condition" },
       { value: "01", label: "Daylight" },
@@ -319,21 +312,6 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
               onClick={(e) => e.stopPropagation()}
             />
           </div>
-          
-          {/* Intersecting Road */}
-          <div className="mb-4">
-            <label className="block font-medium text-gray-700 mb-2">
-              Intersecting Road:
-            </label>
-            <input
-              type="text"
-              placeholder="Enter intersecting road name"
-              className="border rounded p-2 w-full"
-              value={localFilters.intersectingRoad}
-              onChange={(e) => updateLocalFilter("intersectingRoad", e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
         </div>
       )}
 
@@ -354,25 +332,6 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
               onClick={(e) => e.stopPropagation()}
             >
               {filterOptions.injuryLevel.map(option => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          {/* Alcohol/Drugs */}
-          <div className="mb-4">
-            <label className="block font-medium text-gray-700 mb-2">
-              Alcohol/Drugs Involvement:
-            </label>
-            <select
-              className="border rounded p-2 w-full"
-              value={localFilters.alcoholDrugs}
-              onChange={(e) => updateLocalFilter("alcoholDrugs", e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {filterOptions.alcoholDrugs.map(option => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -466,7 +425,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
             <div>
               <ToggleSwitch label="Teen Driver Involved" name="teenInvolved" />
               <ToggleSwitch label="Elderly Driver Involved" name="elderlyInvolved" />
-              <ToggleSwitch label="Impaired Driver" name="impaired" />
+              <ToggleSwitch label="Impaired Driver (Alcohol/Drugs)" name="impaired" />
             </div>
           </div>
           

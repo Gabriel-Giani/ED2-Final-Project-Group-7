@@ -23,9 +23,9 @@ const initialState = {
     // Additional filters
     dayOfWeek: '',
     roadName: '',
-    intersectingRoad: '',
+    // Removed intersectingRoad filter
     injuryLevel: '',
-    alcoholDrugs: '',
+    // Removed alcoholDrugs filter - now combined with impaired
     lightCondition: '',
     weatherCondition: '',
     roadSurfaceCondition: '',

@@ -343,7 +343,7 @@ export const accidentDataService = {
    */
   buildQueryParams(filters) {
     const params = {};
-    
+  
     // Region filters
     if (filters.filterRegion === "county" && filters.regionName) {
       const countyCode = this.getCountyCodeFromName(filters.regionName);
@@ -372,9 +372,9 @@ export const accidentDataService = {
     // Other filters
     if (filters.dayOfWeek) params.dayofweek = filters.dayOfWeek;
     if (filters.roadName) params.onroadname = filters.roadName;
-    if (filters.intersectingRoad) params.inroadname = filters.intersectingRoad;
+    // Removed intersectingRoad filter
     if (filters.injuryLevel) params.highestinj = filters.injuryLevel;
-    if (filters.alcoholDrugs) params.crshalcdrg = filters.alcoholDrugs;
+    // Removed alcoholDrugs filter
     if (filters.lightCondition) params.lightcond = filters.lightCondition;
     if (filters.weatherCondition) params.weathcond = filters.weatherCondition;
     if (filters.roadSurfaceCondition) params.rdsurfcond = filters.roadSurfaceCondition;
@@ -389,7 +389,11 @@ export const accidentDataService = {
     if (filters.motorcycleInvolved) params.fl_vru_mot = "Y";
     if (filters.teenInvolved) params.fl_ar_teen = "Y";
     if (filters.elderlyInvolved) params.fl_ar_ag = "Y";
-    if (filters.impaired) params.flag_imp = "Y";
+    
+    // Modified: Impaired driver filter now includes alcohol and drugs
+    if (filters.impaired) {
+      params.impaired = true; // This is a special flag to handle multiple cases
+    }
     
     return params;
   },
@@ -536,7 +540,7 @@ export const accidentDataService = {
       // Apply date range filters
       if (filters.dateStart && filters.dateEnd) {
         query = query.gte("crashdate", filters.dateStart)
-                     .lte("crashdate", filters.dateEnd);
+                    .lte("crashdate", filters.dateEnd);
       }
       
       // Apply time range filters
@@ -546,7 +550,7 @@ export const accidentDataService = {
         
         if (timeStart && timeEnd) {
           query = query.gte("crashtime", timeStart)
-                     .lte("crashtime", timeEnd);
+                    .lte("crashtime", timeEnd);
         }
       }
       
@@ -560,10 +564,7 @@ export const accidentDataService = {
         query = query.ilike("onroadname", `%${filters.onroadname}%`);
       }
       
-      // Apply intersecting road filter
-      if (filters.inroadname) {
-        query = query.ilike("inroadname", `%${filters.inroadname}%`);
-      }
+      // Removed intersecting road filter
       
       // Apply direction filter
       if (filters.refdirect) {
@@ -575,9 +576,14 @@ export const accidentDataService = {
         query = query.eq("highestinj", filters.highestinj);
       }
       
-      // Apply alcohol/drugs filter
-      if (filters.crshalcdrg) {
-        query = query.eq("crshalcdrg", filters.crshalcdrg);
+      // Modified: Handle the enhanced impaired filter that combines alcohol and drugs
+      if (filters.impaired) {
+        // If impaired is true, we want to match any record where:
+        // - flag_imp is "Y" OR
+        // - crshalcdrg is 1 (Alcohol involved) OR
+        // - crshalcdrg is 2 (Drugs involved) OR
+        // - crshalcdrg is 3 (Alcohol and drugs involved)
+        query = query.or('flag_imp.eq.Y,crshalcdrg.eq.1,crshalcdrg.eq.2,crshalcdrg.eq.3');
       }
       
       // Apply light condition filter
@@ -627,10 +633,6 @@ export const accidentDataService = {
       
       if (filters.fl_ar_ag) {
         query = query.eq("fl_ar_ag", filters.fl_ar_ag);
-      }
-      
-      if (filters.flag_imp) {
-        query = query.eq("flag_imp", filters.flag_imp);
       }
       
       // Apply limit with a reasonable default
