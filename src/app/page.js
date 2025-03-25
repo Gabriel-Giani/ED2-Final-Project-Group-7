@@ -10,10 +10,11 @@ import { motion } from "framer-motion";
 import {
   getAccidentsByDateRange,
   getAccidentsByDateAndTimeRange,
-} from "@/utils/db/accidents";
+} from "../utils/db/accidents";
 import { Feature } from "ol";
 import Point from "ol/geom/Point";
 import { fromLonLat } from "ol/proj";
+import Link from "next/link";
 
 export default function HomePage() {
   // Map reference
@@ -285,8 +286,20 @@ export default function HomePage() {
 
       {/* FOOTER */}
       <footer className="h-10 bg-gray-900 border-t border-gray-700 text-gray-400 text-center flex items-center justify-center text-sm">
-        Created by: Chris Medrano, Gabriel Giani, Leonardo Silva &amp; Gavin
-        West
+        <div className="flex items-center">
+          <span>
+            Created by: Chris Medrano, Gabriel Giani, Leonardo Silva &amp; Gavin
+            West
+          </span>
+          <span className="mx-2">|</span>
+          <Link href="/playground" className="text-blue-400 hover:underline">
+            Traffic Heatmap Playground
+          </Link>
+          <span className="mx-2">|</span>
+          <Link href="/playground3" className="text-blue-400 hover:underline">
+            Road Segments Traffic
+          </Link>
+        </div>
       </footer>
     </div>
   );

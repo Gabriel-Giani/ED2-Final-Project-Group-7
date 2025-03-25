@@ -23,8 +23,8 @@ import {
   getCityHotspots,
   getTopHotspots,
   getRoadSegmentsWithAccidents,
-} from "@/utils/db/hotspots";
-import { getAccidentsByDateAndTimeRange } from "@/utils/db/accidents";
+} from "../../utils/db/hotspots";
+import { getAccidentsByDateAndTimeRange } from "../../utils/db/accidents";
 
 const MIN_ZOOM = 6;
 const MAX_ZOOM = 19;
@@ -33,15 +33,15 @@ const DEFAULT_ZOOM = MIN_ZOOM;
 // Florida bounding box coordinates (with small margin)
 const FLORIDA_EXTENT = [
   -87.8, // Western boundary (slightly west of Pensacola)
-  24.2,  // Southern boundary (includes the Keys)
+  24.2, // Southern boundary (includes the Keys)
   -79.7, // Eastern boundary (past Jacksonville)
-  31.2   // Northern boundary (slightly north of the Florida/Georgia border)
+  31.2, // Northern boundary (slightly north of the Florida/Georgia border)
 ];
 
 // Convert the geographic coordinates to the projection used by OpenLayers
 const FLORIDA_EXTENT_PROJ = [
   ...fromLonLat([FLORIDA_EXTENT[0], FLORIDA_EXTENT[1]]),
-  ...fromLonLat([FLORIDA_EXTENT[2], FLORIDA_EXTENT[3]])
+  ...fromLonLat([FLORIDA_EXTENT[2], FLORIDA_EXTENT[3]]),
 ];
 
 // Crash point style
@@ -113,13 +113,13 @@ export default function HotspotMap({
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const [loading, setLoading] = useState(false);
-  
+
   // Store filter state internally to prevent re-renders
   const filterStateRef = useRef({
     filterRegion,
     regionName,
     dateRange,
-    timeRange
+    timeRange,
   });
 
   // Create sources for different layers
@@ -157,7 +157,7 @@ export default function HotspotMap({
       filterRegion,
       regionName,
       dateRange,
-      timeRange
+      timeRange,
     };
   }, [filterRegion, regionName, dateRange, timeRange]);
 
@@ -165,7 +165,8 @@ export default function HotspotMap({
   async function fetchHotspots() {
     setLoading(true);
     try {
-      const { filterRegion, regionName, dateRange, timeRange } = filterStateRef.current;
+      const { filterRegion, regionName, dateRange, timeRange } =
+        filterStateRef.current;
       console.log(`Fetching hotspots for ${regionName || "all of Florida"}...`);
 
       let hotspots = [];
@@ -378,7 +379,7 @@ export default function HotspotMap({
           minZoom: MIN_ZOOM,
           maxZoom: MAX_ZOOM,
           extent: FLORIDA_EXTENT_PROJ,
-          constrainOnlyCenter: true
+          constrainOnlyCenter: true,
         }),
       });
 

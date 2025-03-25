@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getTopHotspots } from "@/utils/db/hotspots";
+import { getTopHotspots } from "../../utils/db/hotspots";
 
 export default function TopHotspots({
   dateRange = null,
