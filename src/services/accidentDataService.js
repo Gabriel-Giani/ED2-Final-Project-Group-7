@@ -486,178 +486,105 @@ export const accidentDataService = {
    */
   async getFilteredAccidents(filters = {}) {
     try {
-      // Generate a deterministic cache key based on filters
-      // Sort keys to ensure consistent cache keys
-      const filterKeys = Object.keys(filters).sort();
-      const orderedFilters = {};
-      filterKeys.forEach(key => {
-        if (key === 'cityFilter' && filters[key]) {
-          // For city filter, only use the name for caching to avoid variation differences
-          orderedFilters[key] = { name: filters[key].name };
-        } else {
-          orderedFilters[key] = filters[key];
-        }
-      });
-      
-      const cacheKey = `filtered_accidents_${JSON.stringify(orderedFilters)}`;
-      const cachedData = cache.get(cacheKey);
-      if (cachedData) return cachedData;
+      const {
+        filterRegion,
+        regionName,
+        dateRange,
+        timeRange,
+        useTimeFilter,
+        dayOfWeek,
+        roadName,
+        injuryLevel,
+        lightCondition,
+        weatherCondition,
+        roadSurfaceCondition,
+        aggressiveDriving,
+        pedestrianInvolved,
+        bicycleInvolved,
+        motorcycleInvolved,
+        teenInvolved,
+        elderlyInvolved,
+        impaired,
+        damageMin,
+        damageMax,
+        page = 0,
+        batchSize = 5000
+      } = filters;
 
-      // Start a base query
-      let query = supabase.from("ultimate-table").select("*");
-      
-      // Apply region filters
-      if (filters.dotcounty) {
-        query = query.eq("dotcounty", filters.dotcounty);
-      }
-      
-      // Handle city filtering with variations
-      if (filters.cityFilter) {
-        const { name } = filters.cityFilter;
-        
-        if (name) {
-          // Get standardized city name
-          const standardizedName = this.standardizeCityName(name);
-          
-          // Generate variations for database search
-          const variations = this.getCityNameVariations(standardizedName);
-          
-          if (variations && variations.length > 0) {
-            // Build filter to match any of the variations
-            query = query.or(
-              variations.map(variant => `townname.ilike.%${variant}%`).join(',')
-            );
-          } else {
-            // Fallback to simple filter
-            query = query.ilike("townname", `%${standardizedName}%`);
-          }
+      // Start building the query
+      let query = supabase.from('ultimate-table');
+
+      // Region filters
+      if (filterRegion === 'county' && regionName) {
+        const countyCode = this.getCountyCodeFromName(regionName);
+        if (countyCode) {
+          query = query.eq('dotcounty', countyCode);
         }
-      } else if (filters.townname) {
-        // Legacy support for old filter style
-        query = query.ilike("townname", `%${filters.townname}%`);
-      }
-      
-      // Apply date range filters
-      if (filters.dateStart && filters.dateEnd) {
-        query = query.gte("crashdate", filters.dateStart)
-                    .lte("crashdate", filters.dateEnd);
-      }
-      
-      // Apply time range filters
-      if (filters.timeStart && filters.timeEnd) {
-        const timeStart = convertTimeToDbFormat(filters.timeStart);
-        const timeEnd = convertTimeToDbFormat(filters.timeEnd);
-        
-        if (timeStart && timeEnd) {
-          query = query.gte("crashtime", timeStart)
-                    .lte("crashtime", timeEnd);
+      } else if (filterRegion === 'city' && regionName) {
+        const cityVariations = this.getCityNameVariations(regionName);
+        if (cityVariations.length > 0) {
+          query = query.in('townname', cityVariations);
         }
       }
-      
-      // Apply day of week filter
-      if (filters.dayofweek) {
-        query = query.eq("dayofweek", filters.dayofweek);
+
+      // Date range filter
+      if (dateRange?.start) {
+        query = query.gte('crashdate', dateRange.start);
       }
-      
-      // Apply road name filter
-      if (filters.onroadname) {
-        query = query.ilike("onroadname", `%${filters.onroadname}%`);
+      if (dateRange?.end) {
+        query = query.lte('crashdate', dateRange.end);
       }
-      
-      // Removed intersecting road filter
-      
-      // Apply direction filter
-      if (filters.refdirect) {
-        query = query.eq("refdirect", filters.refdirect);
+
+      // Time range filter
+      if (useTimeFilter && timeRange?.start) {
+        query = query.gte('crashtime', convertTimeToDbFormat(timeRange.start));
       }
-      
-      // Apply injury level filter
-      if (filters.highestinj) {
-        query = query.eq("highestinj", filters.highestinj);
+      if (useTimeFilter && timeRange?.end) {
+        query = query.lte('crashtime', convertTimeToDbFormat(timeRange.end));
       }
-      
-      // Modified: Handle the enhanced impaired filter that combines alcohol and drugs
-      if (filters.impaired) {
-        // If impaired is true, we want to match any record where:
-        // - flag_imp is "Y" OR
-        // - crshalcdrg is 1 (Alcohol involved) OR
-        // - crshalcdrg is 2 (Drugs involved) OR
-        // - crshalcdrg is 3 (Alcohol and drugs involved)
-        query = query.or('flag_imp.eq.Y,crshalcdrg.eq.1,crshalcdrg.eq.2,crshalcdrg.eq.3');
-      }
-      
-      // Apply light condition filter
-      if (filters.lightcond) {
-        query = query.eq("lightcond", filters.lightcond);
-      }
-      
-      // Apply weather condition filter
-      if (filters.weathcond) {
-        query = query.eq("weathcond", filters.weathcond);
-      }
-      
-      // Apply road surface condition filter
-      if (filters.rdsurfcond) {
-        query = query.eq("rdsurfcond", filters.rdsurfcond);
-      }
-      
-      // Apply damage range filters
-      if (filters.damageMin) {
-        query = query.gte("totcrshdmg", filters.damageMin);
-      }
-      
-      if (filters.damageMax) {
-        query = query.lte("totcrshdmg", filters.damageMax);
-      }
-      
-      // Apply boolean filters (Y/N values)
-      if (filters.fl_aggrsv) {
-        query = query.eq("fl_aggrsv", filters.fl_aggrsv);
-      }
-      
-      if (filters.fl_vru_ped) {
-        query = query.eq("fl_vru_ped", filters.fl_vru_ped);
-      }
-      
-      if (filters.fl_vru_bik) {
-        query = query.eq("fl_vru_bik", filters.fl_vru_bik);
-      }
-      
-      if (filters.fl_vru_mot) {
-        query = query.eq("fl_vru_mot", filters.fl_vru_mot);
-      }
-      
-      if (filters.fl_ar_teen) {
-        query = query.eq("fl_ar_teen", filters.fl_ar_teen);
-      }
-      
-      if (filters.fl_ar_ag) {
-        query = query.eq("fl_ar_ag", filters.fl_ar_ag);
-      }
-      
-      // Apply limit with a reasonable default
-      query = query.limit(filters.limit || 2000);
-      
-      // Execute the query
-      const { data, error } = await query;
-      
+
+      // Other filters
+      if (dayOfWeek) query = query.eq('dayofweek', dayOfWeek);
+      if (roadName) query = query.ilike('onroadname', `%${roadName}%`);
+      if (injuryLevel) query = query.eq('highestinj', injuryLevel);
+      if (lightCondition) query = query.eq('lightcond', lightCondition);
+      if (weatherCondition) query = query.eq('weathcond', weatherCondition);
+      if (roadSurfaceCondition) query = query.eq('rdsurfcond', roadSurfaceCondition);
+
+      // Boolean flags
+      if (aggressiveDriving) query = query.eq('fl_aggrsv', 'Y');
+      if (pedestrianInvolved) query = query.eq('fl_vru_ped', 'Y');
+      if (bicycleInvolved) query = query.eq('fl_vru_bik', 'Y');
+      if (motorcycleInvolved) query = query.eq('fl_vru_mot', 'Y');
+      if (teenInvolved) query = query.eq('fl_ar_teen', 'Y');
+      if (elderlyInvolved) query = query.eq('fl_ar_ag', 'Y');
+      if (impaired) query = query.eq('flag_imp', 'Y');
+
+      // Damage amount range
+      if (damageMin) query = query.gte('totcrshdmg', parseFloat(damageMin));
+      if (damageMax) query = query.lte('totcrshdmg', parseFloat(damageMax));
+
+      // Get total count
+      const { count: total, error: countError } = await query
+        .select('*', { count: 'exact', head: true });
+
+      if (countError) throw countError;
+
+      // Get paginated data
+      const { data, error } = await query
+        .select('*')
+        .order('crashdate', { ascending: false })
+        .range(page * batchSize, (page + 1) * batchSize - 1);
+
       if (error) throw error;
 
-      // Process the data to standardize city names
-      const processedData = (data || []).map(item => {
-        // If there's a town name, ensure it's in a consistent format
-        if (item.townname) {
-          item.townname = this.standardizeCityName(item.townname);
-        }
-        return item;
-      });
-
-      // Cache the processed result for future use
-      cache.set(cacheKey, processedData);
-      
-      return processedData;
+      return {
+        accidents: data || [],
+        hasMore: (page + 1) * batchSize < total,
+        total
+      };
     } catch (error) {
-      console.error("Error fetching filtered accidents:", error);
+      console.error('Error fetching filtered accidents:', error);
       throw error;
     }
   },

@@ -10,6 +10,7 @@ const initialState = {
   accidents: [],
   hotspots: [],
   roadSegments: [],
+  loadedChunks: new Set(), // Track which chunks are loaded
   
   // Filters
   filters: {
@@ -23,9 +24,7 @@ const initialState = {
     // Additional filters
     dayOfWeek: '',
     roadName: '',
-    // Removed intersectingRoad filter
     injuryLevel: '',
-    // Removed alcoholDrugs filter - now combined with impaired
     lightCondition: '',
     weatherCondition: '',
     roadSurfaceCondition: '',
@@ -47,14 +46,26 @@ const initialState = {
   
   // Reference Data
   counties: [],
-  cities: []
+  cities: [],
+
+  // Pagination State
+  currentPage: 0,
+  hasMoreData: true,
+  batchSize: 25000, // Increased batch size
+  totalAccidents: 0,
+  parallelLoads: 3 // Number of parallel data loads
 };
 
 // Reducer to handle state updates
 const accidentReducer = (state, action) => {
   switch (action.type) {
     case 'SET_ACCIDENTS':
-      return { ...state, accidents: action.payload };
+      return { 
+        ...state, 
+        accidents: action.payload.replace ? action.payload.data : [...state.accidents, ...action.payload.data],
+        currentPage: action.payload.replace ? 0 : state.currentPage + 1,
+        hasMoreData: action.payload.hasMore
+      };
       
     case 'SET_HOTSPOTS':
       return { ...state, hotspots: action.payload };
@@ -77,13 +88,19 @@ const accidentReducer = (state, action) => {
         filters: {
           ...state.filters,
           ...action.payload
-        }
+        },
+        currentPage: 0,
+        hasMoreData: true,
+        accidents: []
       };
       
     case 'RESET_FILTERS':
       return {
         ...state,
-        filters: { ...initialState.filters }
+        filters: { ...initialState.filters },
+        currentPage: 0,
+        hasMoreData: true,
+        accidents: []
       };
       
     case 'SET_LOADING':
@@ -99,6 +116,18 @@ const accidentReducer = (state, action) => {
       return {
         ...state,
         [action.regionType === 'county' ? 'counties' : 'cities']: action.payload 
+      };
+
+    case 'SET_TOTAL_ACCIDENTS':
+      return { ...state, totalAccidents: action.payload };
+
+    case 'SET_CURRENT_PAGE':
+      return { ...state, currentPage: action.payload };
+
+    case 'ADD_LOADED_CHUNK':
+      return {
+        ...state,
+        loadedChunks: new Set([...state.loadedChunks, action.payload])
       };
       
     default:
@@ -129,27 +158,78 @@ export const AccidentProvider = ({ children }) => {
     fetchRegionOptions();
   }, []);
   
-  // Fetch data when filters change
+  // Fetch data when filters change or when loading more data
   useEffect(() => {
+    const fetchDataChunk = async (page) => {
+      if (state.loadedChunks.has(page)) return null;
+      
+      try {
+        const { accidents, hasMore, total } = await accidentDataService.getFilteredAccidents({
+          ...state.filters,
+          page,
+          batchSize: state.batchSize
+        });
+        
+        return { accidents, hasMore, total, page };
+      } catch (error) {
+        console.error(`Error fetching chunk ${page}:`, error);
+        return null;
+      }
+    };
+
+    const processChunk = (chunk) => {
+      if (!chunk) return;
+      
+      const { accidents, hasMore, total, page } = chunk;
+      
+      // Update loaded chunks tracking
+      dispatch({ type: 'ADD_LOADED_CHUNK', payload: page });
+      
+      // Update accidents without reprocessing everything
+      dispatch({ 
+        type: 'SET_ACCIDENTS', 
+        payload: { 
+          data: accidents,
+          hasMore,
+          replace: false
+        }
+      });
+      
+      dispatch({ type: 'SET_TOTAL_ACCIDENTS', payload: total });
+      
+      // If there's more data, trigger next chunks
+      if (hasMore) {
+        const nextPage = Math.max(...Array.from(state.loadedChunks)) + 1;
+        setDataFetchTrigger(nextPage);
+      }
+    };
+
     const fetchData = async () => {
+      if (!state.hasMoreData || state.loading) return;
+      
       dispatch({ type: 'SET_LOADING', payload: true });
       
       try {
-        // Build query params from filters
-        const queryParams = accidentDataService.buildQueryParams(state.filters);
+        // Calculate which chunks to load
+        const startPage = state.currentPage;
+        const chunksToLoad = Array.from(
+          { length: state.parallelLoads },
+          (_, i) => startPage + i
+        );
         
-        // Fetch accident data
-        const accidents = await accidentDataService.getFilteredAccidents(queryParams);
+        // Fetch chunks in parallel
+        const chunkPromises = chunksToLoad.map(page => fetchDataChunk(page));
+        const chunks = await Promise.all(chunkPromises);
         
-        // Process the data
-        const { hotspots, roadSegments } = accidentDataService.processAccidentData(accidents);
+        // Process chunks sequentially to maintain order
+        chunks.forEach(processChunk);
         
-        // Update state
-        dispatch({ type: 'SET_ACCIDENTS', payload: accidents });
+        // Process road segments and hotspots every batch
+        const { hotspots, roadSegments } = accidentDataService.processAccidentData(state.accidents);
         dispatch({ type: 'SET_HOTSPOTS', payload: hotspots });
         dispatch({ type: 'SET_ROAD_SEGMENTS', payload: roadSegments });
       } catch (error) {
-        console.error('Error fetching accident data:', error);
+        console.error('Error in fetch operation:', error);
       } finally {
         dispatch({ type: 'SET_LOADING', payload: false });
       }
@@ -173,7 +253,6 @@ export const AccidentProvider = ({ children }) => {
   // Reset all filters to default
   const resetFilters = () => {
     dispatch({ type: 'RESET_FILTERS' });
-    triggerDataFetch();
   };
   
   // Toggle between points and heatmap view
@@ -203,6 +282,13 @@ export const AccidentProvider = ({ children }) => {
       .sort((a, b) => b.intensity - a.intensity)
       .slice(0, limit);
   };
+
+  // Simplified loadMoreData - now just a trigger since loading is automatic
+  const loadMoreData = () => {
+    if (state.hasMoreData && !state.loading) {
+      setDataFetchTrigger(prev => prev + 1);
+    }
+  };
   
   return (
     <AccidentContext.Provider
@@ -214,7 +300,8 @@ export const AccidentProvider = ({ children }) => {
         applyFilters,
         togglePointsView,
         processAndApplyFilters,
-        getTopHotspots
+        getTopHotspots,
+        loadMoreData
       }}
     >
       {children}
