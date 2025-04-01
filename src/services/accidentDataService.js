@@ -5,23 +5,73 @@ import { supabase } from "@/app/supabaseClient";
 
 // County code mapping - centralized here to avoid duplication
 export const COUNTY_CODES = {
-  "01": "Charlotte", "02": "Citrus", "03": "Collier", "04": "Desoto",
-  "05": "Glades", "06": "Hardee", "07": "Hendry", "08": "Hernando",
-  "09": "Highlands", "10": "Hillsborough", "11": "Lake", "12": "Lee",
-  "13": "Manatee", "14": "Pasco", "15": "Pinellas", "16": "Polk",
-  "17": "Sarasota", "18": "Sumter", "26": "Alachua", "27": "Baker",
-  "28": "Bradford", "29": "Columbia", "30": "Dixie", "31": "Gilchrist",
-  "32": "Hamilton", "33": "Lafayette", "34": "Levy", "35": "Madison",
-  "36": "Marion", "37": "Suwannee", "38": "Taylor", "39": "Union",
-  "46": "Bay", "47": "Calhoun", "48": "Escambia", "49": "Franklin",
-  "50": "Gadsden", "51": "Gulf", "52": "Holmes", "53": "Jackson",
-  "54": "Jefferson", "55": "Leon", "56": "Liberty", "57": "Okaloosa",
-  "58": "Santa Rosa", "59": "Wakulla", "60": "Walton", "61": "Washington",
-  "70": "Brevard", "71": "Clay", "72": "Duval", "73": "Flagler",
-  "74": "Nassau", "75": "Orange", "76": "Putnam", "77": "Seminole",
-  "78": "St Johns", "79": "Volusia", "86": "Broward", "87": "Miami-Dade",
-  "88": "Indian River", "89": "Martin", "90": "Monroe", "91": "Okeechobee",
-  "92": "Osceola", "93": "Palm Beach", "94": "St Lucie"
+  "01": "Charlotte",
+  "02": "Citrus",
+  "03": "Collier",
+  "04": "Desoto",
+  "05": "Glades",
+  "06": "Hardee",
+  "07": "Hendry",
+  "08": "Hernando",
+  "09": "Highlands",
+  10: "Hillsborough",
+  11: "Lake",
+  12: "Lee",
+  13: "Manatee",
+  14: "Pasco",
+  15: "Pinellas",
+  16: "Polk",
+  17: "Sarasota",
+  18: "Sumter",
+  26: "Alachua",
+  27: "Baker",
+  28: "Bradford",
+  29: "Columbia",
+  30: "Dixie",
+  31: "Gilchrist",
+  32: "Hamilton",
+  33: "Lafayette",
+  34: "Levy",
+  35: "Madison",
+  36: "Marion",
+  37: "Suwannee",
+  38: "Taylor",
+  39: "Union",
+  46: "Bay",
+  47: "Calhoun",
+  48: "Escambia",
+  49: "Franklin",
+  50: "Gadsden",
+  51: "Gulf",
+  52: "Holmes",
+  53: "Jackson",
+  54: "Jefferson",
+  55: "Leon",
+  56: "Liberty",
+  57: "Okaloosa",
+  58: "Santa Rosa",
+  59: "Wakulla",
+  60: "Walton",
+  61: "Washington",
+  70: "Brevard",
+  71: "Clay",
+  72: "Duval",
+  73: "Flagler",
+  74: "Nassau",
+  75: "Orange",
+  76: "Putnam",
+  77: "Seminole",
+  78: "St Johns",
+  79: "Volusia",
+  86: "Broward",
+  87: "Miami-Dade",
+  88: "Indian River",
+  89: "Martin",
+  90: "Monroe",
+  91: "Okeechobee",
+  92: "Osceola",
+  93: "Palm Beach",
+  94: "St Lucie",
 };
 
 // Reverse mapping for county names to codes
@@ -32,15 +82,16 @@ Object.entries(COUNTY_CODES).forEach(([code, name]) => {
 
 // Helper function to convert time to database format (HHMM)
 const convertTimeToDbFormat = (timeString) => {
-  if (!timeString || !timeString.includes(':')) return '';
-  const [hours, minutes] = timeString.split(':');
+  if (!timeString || !timeString.includes(":")) return "";
+  const [hours, minutes] = timeString.split(":");
   return `${hours}${minutes}`;
 };
 
 // Simple cache implementation for data
 const cache = {
   data: new Map(),
-  set: (key, value, ttl = 300000) => { // Default TTL: 5 minutes
+  set: (key, value, ttl = 300000) => {
+    // Default TTL: 5 minutes
     const expiry = Date.now() + ttl;
     cache.data.set(key, { value, expiry });
     console.log(`Cached data for key: ${key}`);
@@ -61,7 +112,7 @@ const cache = {
   clear: () => {
     cache.data.clear();
     console.log("Cache cleared");
-  }
+  },
 };
 
 // Centralized accident data service
@@ -74,7 +125,7 @@ export const accidentDataService = {
   getCountyNameFromCode(countyCode) {
     return COUNTY_CODES[countyCode] || null;
   },
-  
+
   /**
    * Get county code from name
    * @param {string} countyName - County name
@@ -87,22 +138,22 @@ export const accidentDataService = {
   // Abbreviation mapping for search purposes
   ABBREVIATION_MAPPING: {
     // Word-by-word mappings
-    "FORT": ["FT", "FT."],
-    "SAINT": ["ST", "ST."],
-    "SAINTE": ["STE", "STE."],
-    "NORTH": ["N", "N."],
-    "SOUTH": ["S", "S."],
-    "EAST": ["E", "E."],
-    "WEST": ["W", "W."],
-    "MOUNT": ["MT", "MT."],
-    "POINT": ["PT", "PT."],
-    "BEACH": ["BCH"],
-    "SPRING": ["SPG"],
-    "SPRINGS": ["SPGS"],
-    "JUNCTION": ["JCT"],
-    "HEIGHTS": ["HTS"],
-    "PARK": ["PK"],
-    
+    FORT: ["FT", "FT."],
+    SAINT: ["ST", "ST."],
+    SAINTE: ["STE", "STE."],
+    NORTH: ["N", "N."],
+    SOUTH: ["S", "S."],
+    EAST: ["E", "E."],
+    WEST: ["W", "W."],
+    MOUNT: ["MT", "MT."],
+    POINT: ["PT", "PT."],
+    BEACH: ["BCH"],
+    SPRING: ["SPG"],
+    SPRINGS: ["SPGS"],
+    JUNCTION: ["JCT"],
+    HEIGHTS: ["HTS"],
+    PARK: ["PK"],
+
     // Full city name mappings for standardization
     "FT LAUDERDALE": "FORT LAUDERDALE",
     "FT. LAUDERDALE": "FORT LAUDERDALE",
@@ -113,23 +164,23 @@ export const accidentDataService = {
     "ST PETERSBURG": "SAINT PETERSBURG",
     "ST. PETERSBURG": "SAINT PETERSBURG",
     "ST AUGUSTINE": "SAINT AUGUSTINE",
-    "ST. AUGUSTINE": "SAINT AUGUSTINE"
+    "ST. AUGUSTINE": "SAINT AUGUSTINE",
   },
-  
+
   // Reverse mapping to get standard city names from variations
   CITY_VARIATIONS_MAP: null, // Will be initialized
-  
+
   /**
    * Initialize the city variations map (one time operation)
    */
   initCityVariationsMap() {
     if (this.CITY_VARIATIONS_MAP !== null) return;
-    
+
     this.CITY_VARIATIONS_MAP = {};
-    
+
     // Add full name mappings
     Object.entries(this.ABBREVIATION_MAPPING).forEach(([variant, standard]) => {
-      if (typeof standard === 'string') {
+      if (typeof standard === "string") {
         this.CITY_VARIATIONS_MAP[variant] = standard;
       }
     });
@@ -141,51 +192,54 @@ export const accidentDataService = {
    * @returns {string} - Standardized city name
    */
   standardizeCityName(cityName) {
-    if (!cityName) return '';
-    
+    if (!cityName) return "";
+
     // Initialize variations map if needed
     this.initCityVariationsMap();
-    
+
     // Convert to uppercase for consistent comparison
     const upperCity = cityName.toUpperCase();
-    
+
     // Check for exact matches in the full city mapping
     if (this.CITY_VARIATIONS_MAP[upperCity]) {
       return this.toTitleCase(this.CITY_VARIATIONS_MAP[upperCity]);
     }
-    
+
     // Handle word-by-word replacements for complex city names
-    const words = upperCity.split(' ');
+    const words = upperCity.split(" ");
     let standardized = true;
-    
+
     for (let i = 0; i < words.length; i++) {
       const word = words[i];
       // Check if this word has abbreviations
-      Object.entries(this.ABBREVIATION_MAPPING).forEach(([standard, abbrevs]) => {
-        if (Array.isArray(abbrevs) && abbrevs.includes(word)) {
-          words[i] = standard;
-          standardized = true;
+      Object.entries(this.ABBREVIATION_MAPPING).forEach(
+        ([standard, abbrevs]) => {
+          if (Array.isArray(abbrevs) && abbrevs.includes(word)) {
+            words[i] = standard;
+            standardized = true;
+          }
         }
-      });
+      );
     }
-    
+
     if (standardized) {
-      return this.toTitleCase(words.join(' '));
+      return this.toTitleCase(words.join(" "));
     }
-    
+
     // If no standardization was needed, format correctly and return
     return this.toTitleCase(upperCity);
   },
-  
+
   /**
    * Convert a string to Title Case
    * @param {string} str - String to convert
    * @returns {string} - Title-cased string
    */
   toTitleCase(str) {
-    return str.split(' ')
-      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(' ');
+    return str
+      .split(" ")
+      .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(" ");
   },
 
   /**
@@ -199,98 +253,384 @@ export const accidentDataService = {
     if (cachedData) return cachedData;
 
     try {
-      if (regionType === 'county') {
+      if (regionType === "county") {
         // For counties, we already have the mapping
         const counties = Object.values(COUNTY_CODES).sort();
         cache.set(cacheKey, counties);
         return counties;
-      } else if (regionType === 'city') {
+      } else if (regionType === "city") {
         // Predefined list of Florida cities (from provided list)
         const predefinedCities = [
-          "Alachua", "Altamonte Springs", "Anna Maria", "Apalachicola", "Apopka", 
-          "Arcadia", "Archer", "Astalula", "Atlantic Beach", "Atlantis", 
-          "Auburndale", "Aventura", "Avon Park", "Bal Harbour", "Baldwin", 
-          "Bartow", "Bay Harbor Islands", "Bay Lake", "Bell", "Belle Glade", 
-          "Belle Isle", "Belleair", "Belleair Beach", "Belleair Bluffs", 
-          "Belleair Shore", "Belleview", "Beverley Beach", "Biscayne Park", 
-          "Blountstown", "Boca Raton", "Boynton Beach", "Bradenton", 
-          "Bradenton Beach", "Branford", "Bristol", "Bronson", "Brooker", 
-          "Brooksville", "Bunnell", "Bushnell", "Callahan", "Callaway", 
-          "Cape Canaveral", "Cape Coral", "Casselberry", "Cedar Key", 
-          "Center Hill", "Century", "Chattahoochee", "Chiefland", "Chipley", 
-          "Cinco Bayou", "Clearwater", "Clermont", "Clewiston", "Cocoa", 
-          "Cocoa Beach", "Coconut Creek", "Coleman", "Cooper City", 
-          "Coral Gables", "Coral Springs", "Cottondale", "Crescent City", 
-          "Crestview", "Cross City", "Crystal River", "Cutler Bay", "Dade City", 
-          "Dania Beach", "Davenport", "Davie", "Daytona Beach", 
-          "Daytona Beach Shores", "De Bary", "DeFuniak Springs", 
-          "Deerfield Beach", "Deland", "Delray Beach", "Deltona", "Destin", 
-          "Doral", "Dunedin", "Dunnellon", "Edgewater", "Edgewood", "El Portal", 
-          "Estero", "Esto", "Eustis", "Everglades City", "Fanning Springs", 
-          "Fellsmere", "Fernandina Beach", "Flagler Beach", "Florida City", 
-          "Fort Lauderdale", "Fort Meade", "Fort Myers", "Fort Myers Beach", 
-          "Fort Pierce", "Fort Walton Beach", "Fort White", "Freeport", 
-          "Frostproof", "Fruitland Park", "Gainesville", "Glen Saint Mary", 
-          "Golden Beach", "Golf", "Grant-Valkaria", "Green Cove Springs", 
-          "Greenacres", "Greensboro", "Greenville", "Gretna", "Groveland", 
-          "Gulf Breeze", "Gulfport", "Haines City", "Hallandale Beach", 
-          "Hampton", "Havana", "Haverhill", "Hawthorne", "Hialeah", 
-          "Hialeah Gardens", "High Springs", "Highland Beach", "Highland Park", 
-          "Hilliard", "Hillsboro Beach", "Holly Hill", "Hollywood", 
-          "Holmes Beach", "Homestead", "Howey-in-the-Hills", "Hypoluxo", 
-          "Indialantic", "Indian Creek", "Indian Harbour Beach", 
-          "Indian River Shores", "Indian Shores", "Indiantown", "Inglis", 
-          "Interlachen", "Inverness", "Islamorada", "Jacksonville", 
-          "Jacksonville Beach", "Jasper", "Jay", "Juno Beach", "Jupiter", 
-          "Jupiter Inlet Colony", "Jupiter Island", "Kenneth City", 
-          "Key Biscayne", "Key Colony Beach", "Key West", "Keystone Heights", 
-          "Kissimmee", "La Crosse", "LaBelle", "Lady Lake", "Lake Alfred", 
-          "Lake Buena Vista", "Lake Butler", "Lake City", "Lake Clark Shores", 
-          "Lake Hamilton", "Lake Helen", "Lake Mary", "Lake Park", "Lake Placid", 
-          "Lake Wales", "Lake Worth Beach", "Lakeland", "Lantana", "Largo", 
-          "Lauderdale Lakes", "Lauderdale-By-The-Sea", "Lauderhill", "Layton", 
-          "Lazy Lake", "Lee", "Leesburg", "Lighthouse Point", "Live Oak", 
-          "Longboat Key", "Longwood", "Loxahatchee Groves", "Lynn Haven", 
-          "Macclenny", "Madeira Beach", "Madison", "Maitland", "Malabar", 
-          "Manalapan", "Mangonia Park", "Marathon", "Marco Island", "Margate", 
-          "Marianna", "Mary Esther", "Mascotte", "McIntosh", "Medley", 
-          "Melbourne", "Melbourne Beach", "Melbourne Village", "Mexico Beach", 
-          "Miami", "Miami Beach", "Miami Gardens", "Miami Lakes", "Miami Shores", 
-          "Miami Springs", "Micanopy", "Midway", "Milton", "Minneola", "Miramar", 
-          "Monticello", "Montverde", "Moore Haven", "Mount Dora", "Mulberry", 
-          "Naples", "Neptune Beach", "New Port Richey", "New Smyrna Beach", 
-          "Newberry", "Niceville", "North Bay Village", "North Lauderdale", 
-          "North Miami", "North Miami Beach", "North Palm Beach", "North Port", 
-          "North Redington Beach", "Oak Hill", "Oakland", "Oakland Park", 
-          "Ocala", "Ocean Breeze", "Ocean Ridge", "Ocoee", "Okeechobee", 
-          "Oldsmar", "Opa-locka", "Orange City", "Orange Park", "Orchid", 
-          "Orlando", "Ormond Beach", "Oviedo", "Pahokee", "Palatka", "Palm Bay", 
-          "Palm Beach", "Palm Beach Gardens", "Palm Beach Shores", "Palm Coast", 
-          "Palm Shores", "Palm Springs", "Palmetto", "Palmetto Bay", 
-          "Panama City", "Panama City Beach", "Parker", "Parkland", "Paxton", 
-          "Pembroke Park", "Pembroke Pines", "Penney Farms", "Pensacola", 
-          "Perry", "Pierson", "Pinecrest", "Pinellas Park", "Plant City", 
-          "Plantation", "Polk City", "Pomona Park", "Pompano Beach", 
-          "Ponce Inlet", "Port Orange", "Port Richey", "Port St. Joe", 
-          "Port St. Lucie", "Punta Gorda", "Quincy", "Reddick", 
-          "Redington Beach", "Redington Shores", "Riviera Beach", "Rockledge", 
-          "Royal Palm Beach", "Safety Harbor", "San Antonio", "Sanford", 
-          "Sanibel", "Sarasota", "Satellite Beach", "Sebastian", "Sebring", 
-          "Sewall's Point", "Shalimar", "Sneads", "Sopchoppy", "South Bay", 
-          "South Daytona", "South Miami", "South Palm Beach", "South Pasadena", 
-          "Southwest Ranches", "Springfield", "Saint Augustine", 
-          "Saint Augustine Beach", "Saint Cloud", "Saint Leo", "Saint Lucie Village", 
-          "Saint Marks", "Saint Pete Beach", "Saint Petersburg", "Starke", "Stuart", 
-          "Sunny Isles Beach", "Sunrise", "Surfside", "Sweetwater", 
-          "Tallahassee", "Tamarac", "Tampa", "Tarpon Springs", "Tavares", 
-          "Temple Terrace", "Tequesta", "Titusville", "Treasure Island", 
-          "Trenton", "Umatilla", "Valparaiso", "Venice", "Vero Beach", 
-          "Virginia Gardens", "Waldo", "Wachula", "Webster", "Welaka", 
-          "Wellington", "West Melbourne", "West Miami", "West Palm Beach", 
-          "West Park", "Westlake", "Weston", "Wewahitchka", "White Springs", 
-          "Wildwood", "Wilton Manors", "Windermere", "Winter Garden", 
-          "Winter Haven", "Winter Park", "Winter Springs", "Yankeetown", 
-          "Zephyrhills", "Zolfo Springs"
+          "Alachua",
+          "Altamonte Springs",
+          "Anna Maria",
+          "Apalachicola",
+          "Apopka",
+          "Arcadia",
+          "Archer",
+          "Astalula",
+          "Atlantic Beach",
+          "Atlantis",
+          "Auburndale",
+          "Aventura",
+          "Avon Park",
+          "Bal Harbour",
+          "Baldwin",
+          "Bartow",
+          "Bay Harbor Islands",
+          "Bay Lake",
+          "Bell",
+          "Belle Glade",
+          "Belle Isle",
+          "Belleair",
+          "Belleair Beach",
+          "Belleair Bluffs",
+          "Belleair Shore",
+          "Belleview",
+          "Beverley Beach",
+          "Biscayne Park",
+          "Blountstown",
+          "Boca Raton",
+          "Boynton Beach",
+          "Bradenton",
+          "Bradenton Beach",
+          "Branford",
+          "Bristol",
+          "Bronson",
+          "Brooker",
+          "Brooksville",
+          "Bunnell",
+          "Bushnell",
+          "Callahan",
+          "Callaway",
+          "Cape Canaveral",
+          "Cape Coral",
+          "Casselberry",
+          "Cedar Key",
+          "Center Hill",
+          "Century",
+          "Chattahoochee",
+          "Chiefland",
+          "Chipley",
+          "Cinco Bayou",
+          "Clearwater",
+          "Clermont",
+          "Clewiston",
+          "Cocoa",
+          "Cocoa Beach",
+          "Coconut Creek",
+          "Coleman",
+          "Cooper City",
+          "Coral Gables",
+          "Coral Springs",
+          "Cottondale",
+          "Crescent City",
+          "Crestview",
+          "Cross City",
+          "Crystal River",
+          "Cutler Bay",
+          "Dade City",
+          "Dania Beach",
+          "Davenport",
+          "Davie",
+          "Daytona Beach",
+          "Daytona Beach Shores",
+          "De Bary",
+          "DeFuniak Springs",
+          "Deerfield Beach",
+          "Deland",
+          "Delray Beach",
+          "Deltona",
+          "Destin",
+          "Doral",
+          "Dunedin",
+          "Dunnellon",
+          "Edgewater",
+          "Edgewood",
+          "El Portal",
+          "Estero",
+          "Esto",
+          "Eustis",
+          "Everglades City",
+          "Fanning Springs",
+          "Fellsmere",
+          "Fernandina Beach",
+          "Flagler Beach",
+          "Florida City",
+          "Fort Lauderdale",
+          "Fort Meade",
+          "Fort Myers",
+          "Fort Myers Beach",
+          "Fort Pierce",
+          "Fort Walton Beach",
+          "Fort White",
+          "Freeport",
+          "Frostproof",
+          "Fruitland Park",
+          "Gainesville",
+          "Glen Saint Mary",
+          "Golden Beach",
+          "Golf",
+          "Grant-Valkaria",
+          "Green Cove Springs",
+          "Greenacres",
+          "Greensboro",
+          "Greenville",
+          "Gretna",
+          "Groveland",
+          "Gulf Breeze",
+          "Gulfport",
+          "Haines City",
+          "Hallandale Beach",
+          "Hampton",
+          "Havana",
+          "Haverhill",
+          "Hawthorne",
+          "Hialeah",
+          "Hialeah Gardens",
+          "High Springs",
+          "Highland Beach",
+          "Highland Park",
+          "Hilliard",
+          "Hillsboro Beach",
+          "Holly Hill",
+          "Hollywood",
+          "Holmes Beach",
+          "Homestead",
+          "Howey-in-the-Hills",
+          "Hypoluxo",
+          "Indialantic",
+          "Indian Creek",
+          "Indian Harbour Beach",
+          "Indian River Shores",
+          "Indian Shores",
+          "Indiantown",
+          "Inglis",
+          "Interlachen",
+          "Inverness",
+          "Islamorada",
+          "Jacksonville",
+          "Jacksonville Beach",
+          "Jasper",
+          "Jay",
+          "Juno Beach",
+          "Jupiter",
+          "Jupiter Inlet Colony",
+          "Jupiter Island",
+          "Kenneth City",
+          "Key Biscayne",
+          "Key Colony Beach",
+          "Key West",
+          "Keystone Heights",
+          "Kissimmee",
+          "La Crosse",
+          "LaBelle",
+          "Lady Lake",
+          "Lake Alfred",
+          "Lake Buena Vista",
+          "Lake Butler",
+          "Lake City",
+          "Lake Clark Shores",
+          "Lake Hamilton",
+          "Lake Helen",
+          "Lake Mary",
+          "Lake Park",
+          "Lake Placid",
+          "Lake Wales",
+          "Lake Worth Beach",
+          "Lakeland",
+          "Lantana",
+          "Largo",
+          "Lauderdale Lakes",
+          "Lauderdale-By-The-Sea",
+          "Lauderhill",
+          "Layton",
+          "Lazy Lake",
+          "Lee",
+          "Leesburg",
+          "Lighthouse Point",
+          "Live Oak",
+          "Longboat Key",
+          "Longwood",
+          "Loxahatchee Groves",
+          "Lynn Haven",
+          "Macclenny",
+          "Madeira Beach",
+          "Madison",
+          "Maitland",
+          "Malabar",
+          "Manalapan",
+          "Mangonia Park",
+          "Marathon",
+          "Marco Island",
+          "Margate",
+          "Marianna",
+          "Mary Esther",
+          "Mascotte",
+          "McIntosh",
+          "Medley",
+          "Melbourne",
+          "Melbourne Beach",
+          "Melbourne Village",
+          "Mexico Beach",
+          "Miami",
+          "Miami Beach",
+          "Miami Gardens",
+          "Miami Lakes",
+          "Miami Shores",
+          "Miami Springs",
+          "Micanopy",
+          "Midway",
+          "Milton",
+          "Minneola",
+          "Miramar",
+          "Monticello",
+          "Montverde",
+          "Moore Haven",
+          "Mount Dora",
+          "Mulberry",
+          "Naples",
+          "Neptune Beach",
+          "New Port Richey",
+          "New Smyrna Beach",
+          "Newberry",
+          "Niceville",
+          "North Bay Village",
+          "North Lauderdale",
+          "North Miami",
+          "North Miami Beach",
+          "North Palm Beach",
+          "North Port",
+          "North Redington Beach",
+          "Oak Hill",
+          "Oakland",
+          "Oakland Park",
+          "Ocala",
+          "Ocean Breeze",
+          "Ocean Ridge",
+          "Ocoee",
+          "Okeechobee",
+          "Oldsmar",
+          "Opa-locka",
+          "Orange City",
+          "Orange Park",
+          "Orchid",
+          "Orlando",
+          "Ormond Beach",
+          "Oviedo",
+          "Pahokee",
+          "Palatka",
+          "Palm Bay",
+          "Palm Beach",
+          "Palm Beach Gardens",
+          "Palm Beach Shores",
+          "Palm Coast",
+          "Palm Shores",
+          "Palm Springs",
+          "Palmetto",
+          "Palmetto Bay",
+          "Panama City",
+          "Panama City Beach",
+          "Parker",
+          "Parkland",
+          "Paxton",
+          "Pembroke Park",
+          "Pembroke Pines",
+          "Penney Farms",
+          "Pensacola",
+          "Perry",
+          "Pierson",
+          "Pinecrest",
+          "Pinellas Park",
+          "Plant City",
+          "Plantation",
+          "Polk City",
+          "Pomona Park",
+          "Pompano Beach",
+          "Ponce Inlet",
+          "Port Orange",
+          "Port Richey",
+          "Port St. Joe",
+          "Port St. Lucie",
+          "Punta Gorda",
+          "Quincy",
+          "Reddick",
+          "Redington Beach",
+          "Redington Shores",
+          "Riviera Beach",
+          "Rockledge",
+          "Royal Palm Beach",
+          "Safety Harbor",
+          "San Antonio",
+          "Sanford",
+          "Sanibel",
+          "Sarasota",
+          "Satellite Beach",
+          "Sebastian",
+          "Sebring",
+          "Sewall's Point",
+          "Shalimar",
+          "Sneads",
+          "Sopchoppy",
+          "South Bay",
+          "South Daytona",
+          "South Miami",
+          "South Palm Beach",
+          "South Pasadena",
+          "Southwest Ranches",
+          "Springfield",
+          "Saint Augustine",
+          "Saint Augustine Beach",
+          "Saint Cloud",
+          "Saint Leo",
+          "Saint Lucie Village",
+          "Saint Marks",
+          "Saint Pete Beach",
+          "Saint Petersburg",
+          "Starke",
+          "Stuart",
+          "Sunny Isles Beach",
+          "Sunrise",
+          "Surfside",
+          "Sweetwater",
+          "Tallahassee",
+          "Tamarac",
+          "Tampa",
+          "Tarpon Springs",
+          "Tavares",
+          "Temple Terrace",
+          "Tequesta",
+          "Titusville",
+          "Treasure Island",
+          "Trenton",
+          "Umatilla",
+          "Valparaiso",
+          "Venice",
+          "Vero Beach",
+          "Virginia Gardens",
+          "Waldo",
+          "Wachula",
+          "Webster",
+          "Welaka",
+          "Wellington",
+          "West Melbourne",
+          "West Miami",
+          "West Palm Beach",
+          "West Park",
+          "Westlake",
+          "Weston",
+          "Wewahitchka",
+          "White Springs",
+          "Wildwood",
+          "Wilton Manors",
+          "Windermere",
+          "Winter Garden",
+          "Winter Haven",
+          "Winter Park",
+          "Winter Springs",
+          "Yankeetown",
+          "Zephyrhills",
+          "Zolfo Springs",
         ];
 
         // Also fetch towns from database to catch any missing from the predefined list
@@ -299,15 +639,15 @@ export const accidentDataService = {
           .select("townname")
           .not("townname", "is", null)
           .limit(1000);
-          
+
         if (error) throw error;
-        
+
         // Set to track standardized city names to avoid duplicates
         const standardizedCities = new Set();
-        
+
         // Process database towns - get unique standardized names
         if (data && data.length > 0) {
-          data.forEach(item => {
+          data.forEach((item) => {
             if (item.townname) {
               const standardized = this.standardizeCityName(item.townname);
               if (standardized) {
@@ -316,19 +656,19 @@ export const accidentDataService = {
             }
           });
         }
-        
+
         // Add predefined cities to the set
-        predefinedCities.forEach(city => {
+        predefinedCities.forEach((city) => {
           standardizedCities.add(city);
         });
-        
+
         // Convert to array and sort
         const uniqueCities = [...standardizedCities].sort();
-        
+
         cache.set(cacheKey, uniqueCities);
         return uniqueCities;
       }
-      
+
       return [];
     } catch (error) {
       console.error(`Error getting ${regionType} options:`, error);
@@ -343,7 +683,7 @@ export const accidentDataService = {
    */
   buildQueryParams(filters) {
     const params = {};
-  
+
     // Region filters
     if (filters.filterRegion === "county" && filters.regionName) {
       const countyCode = this.getCountyCodeFromName(filters.regionName);
@@ -354,21 +694,25 @@ export const accidentDataService = {
       // For city filtering, we'll add variations to handle in query
       params.cityFilter = {
         name: filters.regionName,
-        variations: this.getCityNameVariations(filters.regionName)
+        variations: this.getCityNameVariations(filters.regionName),
       };
     }
-    
+
     // Date and time filters
     if (filters.dateRange?.start && filters.dateRange?.end) {
       params.dateStart = filters.dateRange.start;
       params.dateEnd = filters.dateRange.end;
     }
-    
-    if (filters.useTimeFilter && filters.timeRange?.start && filters.timeRange?.end) {
+
+    if (
+      filters.useTimeFilter &&
+      filters.timeRange?.start &&
+      filters.timeRange?.end
+    ) {
       params.timeStart = filters.timeRange.start;
       params.timeEnd = filters.timeRange.end;
     }
-    
+
     // Other filters
     if (filters.dayOfWeek) params.dayofweek = filters.dayOfWeek;
     if (filters.roadName) params.onroadname = filters.roadName;
@@ -377,11 +721,12 @@ export const accidentDataService = {
     // Removed alcoholDrugs filter
     if (filters.lightCondition) params.lightcond = filters.lightCondition;
     if (filters.weatherCondition) params.weathcond = filters.weatherCondition;
-    if (filters.roadSurfaceCondition) params.rdsurfcond = filters.roadSurfaceCondition;
+    if (filters.roadSurfaceCondition)
+      params.rdsurfcond = filters.roadSurfaceCondition;
     if (filters.direction) params.refdirect = filters.direction;
     if (filters.damageMin) params.damageMin = filters.damageMin;
     if (filters.damageMax) params.damageMax = filters.damageMax;
-    
+
     // Boolean filters
     if (filters.aggressiveDriving) params.fl_aggrsv = "Y";
     if (filters.pedestrianInvolved) params.fl_vru_ped = "Y";
@@ -389,15 +734,15 @@ export const accidentDataService = {
     if (filters.motorcycleInvolved) params.fl_vru_mot = "Y";
     if (filters.teenInvolved) params.fl_ar_teen = "Y";
     if (filters.elderlyInvolved) params.fl_ar_ag = "Y";
-    
+
     // Modified: Impaired driver filter now includes alcohol and drugs
     if (filters.impaired) {
       params.impaired = true; // This is a special flag to handle multiple cases
     }
-    
+
     return params;
   },
-  
+
   /**
    * Generate all possible variations of a city name for comprehensive searching
    * @param {string} cityName - The standardized city name selected by the user
@@ -405,53 +750,53 @@ export const accidentDataService = {
    */
   getCityNameVariations(cityName) {
     if (!cityName) return [];
-    
+
     // Always include the original name
     const variations = [cityName];
     const upperCity = cityName.toUpperCase();
-    
+
     // Words that need abbreviation variations
     const wordVariations = {
-      "FORT": ["FT", "FT."],
-      "SAINT": ["ST", "ST."],
-      "SAINTE": ["STE", "STE."],
-      "NORTH": ["N", "N."],
-      "SOUTH": ["S", "S."],
-      "EAST": ["E", "E."],
-      "WEST": ["W", "W."],
-      "MOUNT": ["MT", "MT."],
-      "POINT": ["PT", "PT."],
-      "BEACH": ["BCH"],
-      "SPRINGS": ["SPGS"],
-      "HEIGHTS": ["HTS"],
-      "JUNCTION": ["JCT"]
+      FORT: ["FT", "FT."],
+      SAINT: ["ST", "ST."],
+      SAINTE: ["STE", "STE."],
+      NORTH: ["N", "N."],
+      SOUTH: ["S", "S."],
+      EAST: ["E", "E."],
+      WEST: ["W", "W."],
+      MOUNT: ["MT", "MT."],
+      POINT: ["PT", "PT."],
+      BEACH: ["BCH"],
+      SPRINGS: ["SPGS"],
+      HEIGHTS: ["HTS"],
+      JUNCTION: ["JCT"],
     };
-    
+
     // Split the city name into words
-    const words = upperCity.split(' ');
-    
+    const words = upperCity.split(" ");
+
     // Generate variations based on abbreviating different parts
     for (let i = 0; i < words.length; i++) {
       const currentWord = words[i];
       const abbrevs = wordVariations[currentWord];
-      
+
       if (abbrevs) {
         // For each possible abbreviation of this word
-        abbrevs.forEach(abbrev => {
+        abbrevs.forEach((abbrev) => {
           // Create a new array with the abbreviation substituted
           const newWords = [...words];
           newWords[i] = abbrev;
-          
+
           // Add the variation (in Title Case)
-          const variation = newWords.map(word => 
-            word.charAt(0) + word.slice(1).toLowerCase()
-          ).join(' ');
-          
+          const variation = newWords
+            .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+            .join(" ");
+
           variations.push(variation);
         });
       }
     }
-    
+
     // Special case handling for specific cities
     if (upperCity === "SAINT PETERSBURG") {
       variations.push("Saint Petersburg");
@@ -474,7 +819,7 @@ export const accidentDataService = {
       variations.push("S Bay");
       variations.push("S. Bay");
     }
-    
+
     // Remove any duplicates that might have been generated
     return [...new Set(variations)];
   },
@@ -490,42 +835,44 @@ export const accidentDataService = {
       // Sort keys to ensure consistent cache keys
       const filterKeys = Object.keys(filters).sort();
       const orderedFilters = {};
-      filterKeys.forEach(key => {
-        if (key === 'cityFilter' && filters[key]) {
+      filterKeys.forEach((key) => {
+        if (key === "cityFilter" && filters[key]) {
           // For city filter, only use the name for caching to avoid variation differences
           orderedFilters[key] = { name: filters[key].name };
         } else {
           orderedFilters[key] = filters[key];
         }
       });
-      
+
       const cacheKey = `filtered_accidents_${JSON.stringify(orderedFilters)}`;
       const cachedData = cache.get(cacheKey);
       if (cachedData) return cachedData;
 
       // Start a base query
       let query = supabase.from("ultimate-table").select("*");
-      
+
       // Apply region filters
       if (filters.dotcounty) {
         query = query.eq("dotcounty", filters.dotcounty);
       }
-      
+
       // Handle city filtering with variations
       if (filters.cityFilter) {
         const { name } = filters.cityFilter;
-        
+
         if (name) {
           // Get standardized city name
           const standardizedName = this.standardizeCityName(name);
-          
+
           // Generate variations for database search
           const variations = this.getCityNameVariations(standardizedName);
-          
+
           if (variations && variations.length > 0) {
             // Build filter to match any of the variations
             query = query.or(
-              variations.map(variant => `townname.ilike.%${variant}%`).join(',')
+              variations
+                .map((variant) => `townname.ilike.%${variant}%`)
+                .join(",")
             );
           } else {
             // Fallback to simple filter
@@ -536,46 +883,46 @@ export const accidentDataService = {
         // Legacy support for old filter style
         query = query.ilike("townname", `%${filters.townname}%`);
       }
-      
+
       // Apply date range filters
       if (filters.dateStart && filters.dateEnd) {
-        query = query.gte("crashdate", filters.dateStart)
-                    .lte("crashdate", filters.dateEnd);
+        query = query
+          .gte("crashdate", filters.dateStart)
+          .lte("crashdate", filters.dateEnd);
       }
-      
+
       // Apply time range filters
       if (filters.timeStart && filters.timeEnd) {
         const timeStart = convertTimeToDbFormat(filters.timeStart);
         const timeEnd = convertTimeToDbFormat(filters.timeEnd);
-        
+
         if (timeStart && timeEnd) {
-          query = query.gte("crashtime", timeStart)
-                    .lte("crashtime", timeEnd);
+          query = query.gte("crashtime", timeStart).lte("crashtime", timeEnd);
         }
       }
-      
+
       // Apply day of week filter
       if (filters.dayofweek) {
         query = query.eq("dayofweek", filters.dayofweek);
       }
-      
+
       // Apply road name filter
       if (filters.onroadname) {
         query = query.ilike("onroadname", `%${filters.onroadname}%`);
       }
-      
+
       // Removed intersecting road filter
-      
+
       // Apply direction filter
       if (filters.refdirect) {
         query = query.eq("refdirect", filters.refdirect);
       }
-      
+
       // Apply injury level filter
       if (filters.highestinj) {
         query = query.eq("highestinj", filters.highestinj);
       }
-      
+
       // Modified: Handle the enhanced impaired filter that combines alcohol and drugs
       if (filters.impaired) {
         // If impaired is true, we want to match any record where:
@@ -583,68 +930,70 @@ export const accidentDataService = {
         // - crshalcdrg is 1 (Alcohol involved) OR
         // - crshalcdrg is 2 (Drugs involved) OR
         // - crshalcdrg is 3 (Alcohol and drugs involved)
-        query = query.or('flag_imp.eq.Y,crshalcdrg.eq.1,crshalcdrg.eq.2,crshalcdrg.eq.3');
+        query = query.or(
+          "flag_imp.eq.Y,crshalcdrg.eq.1,crshalcdrg.eq.2,crshalcdrg.eq.3"
+        );
       }
-      
+
       // Apply light condition filter
       if (filters.lightcond) {
         query = query.eq("lightcond", filters.lightcond);
       }
-      
+
       // Apply weather condition filter
       if (filters.weathcond) {
         query = query.eq("weathcond", filters.weathcond);
       }
-      
+
       // Apply road surface condition filter
       if (filters.rdsurfcond) {
         query = query.eq("rdsurfcond", filters.rdsurfcond);
       }
-      
+
       // Apply damage range filters
       if (filters.damageMin) {
         query = query.gte("totcrshdmg", filters.damageMin);
       }
-      
+
       if (filters.damageMax) {
         query = query.lte("totcrshdmg", filters.damageMax);
       }
-      
+
       // Apply boolean filters (Y/N values)
       if (filters.fl_aggrsv) {
         query = query.eq("fl_aggrsv", filters.fl_aggrsv);
       }
-      
+
       if (filters.fl_vru_ped) {
         query = query.eq("fl_vru_ped", filters.fl_vru_ped);
       }
-      
+
       if (filters.fl_vru_bik) {
         query = query.eq("fl_vru_bik", filters.fl_vru_bik);
       }
-      
+
       if (filters.fl_vru_mot) {
         query = query.eq("fl_vru_mot", filters.fl_vru_mot);
       }
-      
+
       if (filters.fl_ar_teen) {
         query = query.eq("fl_ar_teen", filters.fl_ar_teen);
       }
-      
+
       if (filters.fl_ar_ag) {
         query = query.eq("fl_ar_ag", filters.fl_ar_ag);
       }
-      
+
       // Apply limit with a reasonable default
       query = query.limit(filters.limit || 2000);
-      
+
       // Execute the query
       const { data, error } = await query;
-      
+
       if (error) throw error;
 
       // Process the data to standardize city names
-      const processedData = (data || []).map(item => {
+      const processedData = (data || []).map((item) => {
         // If there's a town name, ensure it's in a consistent format
         if (item.townname) {
           item.townname = this.standardizeCityName(item.townname);
@@ -654,7 +1003,7 @@ export const accidentDataService = {
 
       // Cache the processed result for future use
       cache.set(cacheKey, processedData);
-      
+
       return processedData;
     } catch (error) {
       console.error("Error fetching filtered accidents:", error);
@@ -669,37 +1018,38 @@ export const accidentDataService = {
    */
   sortCoordinatesForLine(coords) {
     if (coords.length <= 2) return coords;
-    
+
     // Start with first point
     const sorted = [coords[0]];
-    const remaining = new Set(coords.slice(1).map(c => JSON.stringify(c)));
-    
+    const remaining = new Set(coords.slice(1).map((c) => JSON.stringify(c)));
+
     while (remaining.size > 0) {
       const lastPoint = sorted[sorted.length - 1];
       let closestPoint = null;
       let closestPointStr = null;
       let minDistance = Infinity;
-      
-      Array.from(remaining).forEach(pointStr => {
+
+      Array.from(remaining).forEach((pointStr) => {
         const point = JSON.parse(pointStr);
         const distance = Math.sqrt(
           Math.pow(point[0] - lastPoint[0], 2) +
-          Math.pow(point[1] - lastPoint[1], 2)
+            Math.pow(point[1] - lastPoint[1], 2)
         );
-        
+
         if (distance < minDistance) {
           minDistance = distance;
           closestPoint = point;
           closestPointStr = pointStr;
         }
       });
-      
+
       // If the closest point is too far away (likely a different road segment),
       // stop connecting points
-      if (minDistance > 0.05) { // ~5km threshold
+      if (minDistance > 0.05) {
+        // ~5km threshold
         break;
       }
-      
+
       if (closestPoint && closestPointStr) {
         sorted.push(closestPoint);
         remaining.delete(closestPointStr);
@@ -707,7 +1057,7 @@ export const accidentDataService = {
         break;
       }
     }
-    
+
     return sorted;
   },
 
@@ -716,96 +1066,73 @@ export const accidentDataService = {
    * @param {Array} accidents - Array of accident records
    * @returns {Object} - Object containing hotspots and road segments
    */
-  processAccidentData(accidents) {
+  async processAccidentData(accidents) {
     if (!accidents || accidents.length === 0) {
       return { hotspots: [], roadSegments: [] };
     }
-    
-    // Group accidents by road name for road segments
-    const roadGroups = new Map();
-    
+
     // Create grid for hotspots
     const gridSize = 0.01; // Adjust based on desired cluster size
     const grid = {};
-    
-    accidents.forEach(accident => {
+
+    accidents.forEach((accident) => {
       if (!accident.latitude || !accident.longitude) return;
-      
+
       // Process for hotspots (grid-based)
       const lat = Math.round(accident.latitude / gridSize) * gridSize;
       const lng = Math.round(accident.longitude / gridSize) * gridSize;
       const key = `${lat},${lng}`;
-      
+
       if (!grid[key]) {
-        const countyName = accident.dotcounty 
-          ? this.getCountyNameFromCode(accident.dotcounty) 
-          : 'Unknown';
-          
+        const countyName = accident.dotcounty
+          ? this.getCountyNameFromCode(accident.dotcounty)
+          : "Unknown";
+
         grid[key] = {
           count: 0,
           lats: [],
           lngs: [],
           road_names: [],
           county: countyName,
-          city: accident.townname || 'Unknown'
+          city: accident.townname || "Unknown",
         };
       }
-      
+
       grid[key].count++;
       grid[key].lats.push(accident.latitude);
       grid[key].lngs.push(accident.longitude);
-      
-      if (accident.onroadname && !grid[key].road_names.includes(accident.onroadname)) {
+
+      if (
+        accident.onroadname &&
+        !grid[key].road_names.includes(accident.onroadname)
+      ) {
         grid[key].road_names.push(accident.onroadname);
       }
-      
-      // Process for road segments
-      if (accident.onroadname) {
-        const countyName = accident.dotcounty 
-          ? this.getCountyNameFromCode(accident.dotcounty) 
-          : 'Unknown';
-        const city = accident.townname || 'Unknown';
-        const roadKey = `${accident.onroadname}|${countyName}|${city}`;
-        
-        if (!roadGroups.has(roadKey)) {
-          roadGroups.set(roadKey, {
-            name: accident.onroadname,
-            county: countyName,
-            city: city,
-            coordinates: [],
-            count: 0
-          });
-        }
-        
-        const group = roadGroups.get(roadKey);
-        group.coordinates.push([
-          parseFloat(accident.longitude),
-          parseFloat(accident.latitude)
-        ]);
-        group.count += 1;
-      }
     });
-    
+
     // Calculate hotspots from grid cells
-    const counts = Object.values(grid).map(cell => cell.count);
+    const counts = Object.values(grid).map((cell) => cell.count);
     const maxCount = Math.max(...counts, 1); // Prevent division by zero
-    
+
     const hotspots = Object.entries(grid).map(([key, cell], index) => {
-      const avgLat = cell.lats.reduce((sum, lat) => sum + lat, 0) / cell.lats.length;
-      const avgLng = cell.lngs.reduce((sum, lng) => sum + lng, 0) / cell.lngs.length;
+      const avgLat =
+        cell.lats.reduce((sum, lat) => sum + lat, 0) / cell.lats.length;
+      const avgLng =
+        cell.lngs.reduce((sum, lng) => sum + lng, 0) / cell.lngs.length;
       const intensity = cell.count / maxCount;
       const radius = Math.max(500, Math.min(5000, cell.count * 50));
-      
+
       // Find most common road name
       const roadNameCounts = {};
-      cell.road_names.forEach(name => {
+      cell.road_names.forEach((name) => {
         roadNameCounts[name] = (roadNameCounts[name] || 0) + 1;
       });
-      
-      const roadName = cell.road_names.length > 0
-        ? Object.entries(roadNameCounts).sort((a, b) => b[1] - a[1])[0][0]
-        : undefined;
-      
+
+      const roadName =
+        cell.road_names.length > 0
+          ? Object.entries(roadNameCounts).sort((a, b) => b[1] - a[1])[0][0]
+          : undefined;
+
       return {
         id: `hotspot-${index}`,
         center: [avgLng, avgLat],
@@ -814,23 +1141,90 @@ export const accidentDataService = {
         count: cell.count,
         road_name: roadName,
         county: cell.county,
-        city: cell.city
+        city: cell.city,
       };
     });
-    
+
+    // Process road segments using road geometry from database
+    try {
+      // PRIORITIZE using the function that fetches real geometry
+      console.log(
+        "Attempting to process road segments using database geometry..."
+      );
+      const roadSegments = await this.processRoadSegmentsWithGeometry(
+        accidents
+      );
+      console.log(
+        `Successfully processed ${roadSegments.length} road segments using geometry.`
+      );
+      return { hotspots, roadSegments };
+    } catch (error) {
+      console.error(
+        "Error processing road segments with geometry, falling back to simple segments:",
+        error
+      );
+      // Fallback to simple road segments ONLY if the advanced method fails
+      const simpleRoadSegments = this.createSimpleRoadSegments(accidents);
+      console.log(
+        `Fell back to processing ${simpleRoadSegments.length} simple road segments.`
+      );
+      return { hotspots, roadSegments: simpleRoadSegments };
+    }
+  },
+
+  /**
+   * Create simple road segments by connecting accident points (fallback method)
+   * @param {Array} accidents - Array of accident records
+   * @returns {Array} - Array of road segments
+   */
+  createSimpleRoadSegments(accidents) {
+    // Group accidents by road name for road segments
+    const roadGroups = new Map();
+
+    accidents.forEach((accident) => {
+      if (!accident.onroadname || !accident.latitude || !accident.longitude)
+        return;
+
+      const countyName = accident.dotcounty
+        ? this.getCountyNameFromCode(accident.dotcounty)
+        : "Unknown";
+      const city = accident.townname || "Unknown";
+      const roadKey = `${accident.onroadname}|${countyName}|${city}`;
+
+      if (!roadGroups.has(roadKey)) {
+        roadGroups.set(roadKey, {
+          name: accident.onroadname,
+          county: countyName,
+          city: city,
+          coordinates: [],
+          count: 0,
+        });
+      }
+
+      const group = roadGroups.get(roadKey);
+      group.coordinates.push([
+        parseFloat(accident.longitude),
+        parseFloat(accident.latitude),
+      ]);
+      group.count += 1;
+    });
+
     // Process road segments
     const filteredRoadGroups = Array.from(roadGroups.values()).filter(
-      group => group.coordinates.length >= 3
+      (group) => group.coordinates.length >= 3
     );
-    
+
     const roadSegments = filteredRoadGroups.map((group, index) => {
       // Sort coordinates to form a reasonable line
       const sortedCoordinates = this.sortCoordinatesForLine(group.coordinates);
-      
+
       // Calculate intensity based on accident count
-      const maxGroupCount = Math.max(...filteredRoadGroups.map(g => g.count), 1);
+      const maxGroupCount = Math.max(
+        ...filteredRoadGroups.map((g) => g.count),
+        1
+      );
       const intensity = Math.min(1, group.count / maxGroupCount);
-      
+
       return {
         id: `road-${index}`,
         name: group.name,
@@ -838,26 +1232,482 @@ export const accidentDataService = {
         city: group.city,
         coordinates: sortedCoordinates,
         count: group.count,
-        intensity: intensity
+        intensity: intensity,
       };
     });
-    
-    return { hotspots, roadSegments };
+
+    return roadSegments;
   },
-  
+
+  /**
+   * Process road segments with actual road geometry from the database
+   * @param {Array} accidents - Array of accident records
+   * @returns {Array} - Array of road segments that follow actual road geometries
+   */
+  async processRoadSegmentsWithGeometry(accidents) {
+    try {
+      console.log(
+        "Starting processRoadSegmentsWithGeometry with",
+        accidents.length,
+        "accidents"
+      );
+
+      // Import wellknown properly - using different methods as fallbacks
+      let wellknown;
+      try {
+        // Try dynamic import first (most reliable in Next.js)
+        wellknown = (await import("wellknown")).default;
+        console.log(
+          "Successfully imported wellknown package via dynamic import"
+        );
+      } catch (importError) {
+        console.error(
+          "Error importing wellknown package dynamically:",
+          importError
+        );
+        try {
+          // Try CommonJS require as fallback
+          wellknown = require("wellknown");
+          console.log("Successfully imported wellknown package via require");
+        } catch (requireError) {
+          console.error(
+            "Error importing wellknown package via require:",
+            requireError
+          );
+          // Final fallback to simple line segments
+          console.warn(
+            "Falling back to simple road segments due to wellknown import failure"
+          );
+          return this.createSimpleRoadSegments(accidents);
+        }
+      }
+
+      // Test the wellknown package with a simple WKT string
+      try {
+        const testWKT = "LINESTRING(-82.4 28.1, -82.5 28.2)";
+        const testResult = wellknown.parse(testWKT);
+        console.log("WKT test parse result:", testResult);
+        if (!testResult || !testResult.coordinates) {
+          throw new Error("Test WKT parsing failed");
+        }
+      } catch (e) {
+        console.error("Error testing wellknown package:", e);
+        // If test fails, fall back to simple road segments
+        console.warn(
+          "Falling back to simple road segments due to wellknown test failure"
+        );
+        return this.createSimpleRoadSegments(accidents);
+      }
+
+      // Group accidents by road names and location
+      const roadGroups = {};
+
+      accidents.forEach((accident) => {
+        if (!accident.latitude || !accident.longitude || !accident.onroadname) {
+          return;
+        }
+
+        // Create a key that combines road name, county and city for more precise segments
+        const county = accident.dotcounty
+          ? this.getCountyNameFromCode(accident.dotcounty)
+          : "unknown";
+        const city = accident.townname || "unknown";
+
+        // Create a road segment key with enough specificity to separate segments properly
+        const segmentKey = `${accident.onroadname}|${county}|${city}`;
+
+        if (!roadGroups[segmentKey]) {
+          roadGroups[segmentKey] = {
+            name: accident.onroadname,
+            county,
+            city,
+            accidentPoints: [],
+            accidents: [],
+            bbox: {
+              minLon: Infinity,
+              minLat: Infinity,
+              maxLon: -Infinity,
+              maxLat: -Infinity,
+            },
+          };
+        }
+
+        const lon = parseFloat(accident.longitude);
+        const lat = parseFloat(accident.latitude);
+
+        // Add the accident coordinates and update bounding box
+        roadGroups[segmentKey].accidentPoints.push({ lon, lat });
+        roadGroups[segmentKey].accidents.push(accident);
+
+        // Update bounding box
+        roadGroups[segmentKey].bbox.minLon = Math.min(
+          roadGroups[segmentKey].bbox.minLon,
+          lon
+        );
+        roadGroups[segmentKey].bbox.minLat = Math.min(
+          roadGroups[segmentKey].bbox.minLat,
+          lat
+        );
+        roadGroups[segmentKey].bbox.maxLon = Math.max(
+          roadGroups[segmentKey].bbox.maxLon,
+          lon
+        );
+        roadGroups[segmentKey].bbox.maxLat = Math.max(
+          roadGroups[segmentKey].bbox.maxLat,
+          lat
+        );
+      });
+
+      console.log(
+        "Created",
+        Object.keys(roadGroups).length,
+        "road groups from accidents"
+      );
+
+      // Process each road group to create road segments
+      const processedSegments = [];
+      let realRoadMatches = 0;
+      let fallbackSegments = 0;
+      const roadKeys = Object.keys(roadGroups);
+
+      // Process in smaller batches to avoid timeouts
+      const batchSize = 10;
+      for (let i = 0; i < roadKeys.length; i += batchSize) {
+        const batchKeys = roadKeys.slice(i, i + batchSize);
+        console.log(
+          `Processing batch ${i / batchSize + 1} of ${Math.ceil(
+            roadKeys.length / batchSize
+          )}, ${batchKeys.length} road groups`
+        );
+
+        for (const key of batchKeys) {
+          const group = roadGroups[key];
+
+          // Need at least 2 points to form a line
+          if (group.accidentPoints.length < 2) {
+            continue;
+          }
+
+          try {
+            // Query roads by name AND location for much better matching
+            console.log(
+              `Querying roads for ${group.name} in bbox: `,
+              group.bbox
+            );
+
+            // Use a simpler query approach that's more likely to work
+            const { data: roadData, error: roadError } = await supabase
+              .from("major-roads")
+              .select("WKT, LINEARID, FULLNAME, RTTYP, MTFCC");
+
+            if (roadError) {
+              console.error(
+                `Error fetching roads for ${group.name}:`,
+                roadError
+              );
+              throw roadError;
+            }
+
+            console.log(
+              `Found ${
+                roadData?.length || 0
+              } road records, filtering for matches to ${group.name}`
+            );
+
+            if (roadData && roadData.length > 0) {
+              // Filter roads by name similarity in memory instead of in the query
+              const filteredRoads = roadData.filter(
+                (road) =>
+                  road.FULLNAME &&
+                  (road.FULLNAME.toLowerCase().includes(
+                    group.name.toLowerCase()
+                  ) ||
+                    group.name
+                      .toLowerCase()
+                      .includes(road.FULLNAME.toLowerCase().split(" ")[0]))
+              );
+
+              console.log(
+                `Filtered to ${filteredRoads.length} roads with matching name`
+              );
+
+              // Parse WKT and check which roads actually overlap with our accident area
+              const matchingRoads = [];
+
+              for (const road of filteredRoads) {
+                try {
+                  if (!road.WKT) continue;
+
+                  const geometry = wellknown.parse(road.WKT);
+                  if (!geometry || !geometry.coordinates) continue;
+
+                  // Calculate road bounding box
+                  const bbox = this.calculateBoundingBox(geometry.coordinates);
+
+                  // Check if bounding boxes overlap, with a margin
+                  const margin = 0.05; // ~5km
+                  const bboxOverlap =
+                    bbox.minLon <= group.bbox.maxLon + margin &&
+                    bbox.maxLon >= group.bbox.minLon - margin &&
+                    bbox.minLat <= group.bbox.maxLat + margin &&
+                    bbox.maxLat >= group.bbox.minLat - margin;
+
+                  if (bboxOverlap) {
+                    matchingRoads.push({
+                      id: road.LINEARID,
+                      name: road.FULLNAME,
+                      roadType: road.RTTYP,
+                      mtfcc: road.MTFCC,
+                      geometry: geometry.coordinates,
+                      bbox,
+                    });
+                  }
+                } catch (e) {
+                  console.error(
+                    `Error parsing WKT for road ${road.LINEARID}:`,
+                    e
+                  );
+                }
+              }
+
+              if (matchingRoads.length > 0) {
+                // Use the best matching road (by name similarity)
+                const bestMatch = this.findBestRoadMatch(
+                  group.name,
+                  matchingRoads
+                );
+                realRoadMatches++;
+
+                // Log details about the matched road
+                console.log(
+                  `Road match found: "${group.name}" -> "${bestMatch.name}" with ${group.accidents.length} accidents`
+                );
+
+                // Calculate intensity based on accident count and road length
+                const accidentCount = group.accidents.length;
+                const segmentLength = this.calculateRoadLength(
+                  bestMatch.geometry
+                );
+
+                // Calculate accidents per km for intensity - capped at a reasonable maximum
+                const accidentsPerKm =
+                  segmentLength > 0
+                    ? Math.min(accidentCount / (segmentLength / 1000), 20)
+                    : accidentCount;
+
+                // Normalize intensity to 0-1 range (with 20 accidents per km as max)
+                const intensity = Math.min(accidentsPerKm / 20, 1);
+
+                processedSegments.push({
+                  id: `road-${key}`,
+                  name: group.name,
+                  county: group.county,
+                  city: group.city,
+                  count: accidentCount,
+                  length: segmentLength,
+                  intensity,
+                  isRealRoad: true,
+                  coordinates: bestMatch.geometry,
+                });
+              } else {
+                // Fall back to connecting accident points
+                fallbackSegments++;
+                this.createSimpleRoadSegment(group, key, processedSegments);
+              }
+            } else {
+              // No matching roads found in database
+              fallbackSegments++;
+              this.createSimpleRoadSegment(group, key, processedSegments);
+            }
+          } catch (error) {
+            console.error(`Error processing road group ${key}:`, error);
+            fallbackSegments++;
+            this.createSimpleRoadSegment(group, key, processedSegments);
+          }
+
+          // Small delay to prevent UI freezing and rate limiting
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+      }
+
+      console.log(`Processed ${processedSegments.length} road segments:
+        - ${realRoadMatches} using actual road geometry
+        - ${fallbackSegments} using simple connected points`);
+
+      // Sort by intensity (descending)
+      return processedSegments.sort((a, b) => b.intensity - a.intensity);
+    } catch (error) {
+      console.error("Error processing road segments with geometry:", error);
+      console.log("Falling back to simple road segments");
+      return this.createSimpleRoadSegments(accidents);
+    }
+  },
+
+  /**
+   * Helper to create a simple road segment from accident points
+   */
+  createSimpleRoadSegment(group, key, processedSegments) {
+    console.log(
+      `No road match found for "${group.name}" in ${group.county}, ${group.city} - falling back to simple line`
+    );
+
+    const sortedCoordinates = this.sortCoordinatesForLine(
+      group.accidentPoints.map((p) => [p.lon, p.lat])
+    );
+
+    // Calculate intensity based on accident count
+    const intensity = Math.min(1, group.accidents.length / 20);
+
+    processedSegments.push({
+      id: `road-${key}`,
+      name: group.name,
+      county: group.county,
+      city: group.city,
+      count: group.accidents.length,
+      length: this.calculateRoadLength(sortedCoordinates),
+      intensity,
+      isRealRoad: false,
+      coordinates: sortedCoordinates,
+    });
+  },
+
+  /**
+   * Find the best matching road based on name similarity
+   */
+  findBestRoadMatch(roadName, matchingRoads) {
+    if (matchingRoads.length === 1) return matchingRoads[0];
+
+    // Calculate similarity scores
+    const similarities = matchingRoads.map((road) => {
+      // Simple string similarity based on character overlap
+      const nameSimilarity = this.calculateStringSimilarity(
+        roadName.toLowerCase(),
+        road.name.toLowerCase()
+      );
+      return { road, score: nameSimilarity };
+    });
+
+    // Return the road with the highest similarity score
+    return similarities.sort((a, b) => b.score - a.score)[0].road;
+  },
+
+  /**
+   * Calculate simple string similarity (0-1) between two strings
+   */
+  calculateStringSimilarity(str1, str2) {
+    // Very simple similarity based on common substrings
+    if (str1.includes(str2)) return 1;
+    if (str2.includes(str1)) return 1;
+
+    // Count matching characters
+    let matches = 0;
+    for (let i = 0; i < str1.length; i++) {
+      if (str2.includes(str1[i])) matches++;
+    }
+
+    return matches / Math.max(str1.length, str2.length);
+  },
+
+  /**
+   * Calculate a bounding box for a set of coordinates
+   * @param {Array} coordinates - Array of coordinate pairs [lon, lat]
+   * @returns {Object} - Bounding box object
+   */
+  calculateBoundingBox(coordinates) {
+    if (!coordinates || coordinates.length === 0) {
+      return {
+        minLon: 0,
+        minLat: 0,
+        maxLon: 0,
+        maxLat: 0,
+      };
+    }
+
+    let minLon = Infinity;
+    let minLat = Infinity;
+    let maxLon = -Infinity;
+    let maxLat = -Infinity;
+
+    coordinates.forEach((coord) => {
+      const [lon, lat] = coord;
+      minLon = Math.min(minLon, lon);
+      minLat = Math.min(minLat, lat);
+      maxLon = Math.max(maxLon, lon);
+      maxLat = Math.max(maxLat, lat);
+    });
+
+    return {
+      minLon,
+      minLat,
+      maxLon,
+      maxLat,
+    };
+  },
+
+  /**
+   * Calculate the length of a line in meters
+   * @param {Array} coordinates - Array of coordinate pairs [lon, lat]
+   * @returns {number} - Length in meters
+   */
+  calculateRoadLength(coordinates) {
+    if (!coordinates || coordinates.length < 2) {
+      return 0;
+    }
+
+    let length = 0;
+    for (let i = 1; i < coordinates.length; i++) {
+      const [lon1, lat1] = coordinates[i - 1];
+      const [lon2, lat2] = coordinates[i];
+      length += this.calculateGeoDistance(lat1, lon1, lat2, lon2);
+    }
+
+    return length;
+  },
+
+  /**
+   * Calculate the distance between two points in meters using the Haversine formula
+   * @param {number} lat1 - Latitude of first point
+   * @param {number} lon1 - Longitude of first point
+   * @param {number} lat2 - Latitude of second point
+   * @param {number} lon2 - Longitude of second point
+   * @returns {number} - Distance in meters
+   */
+  calculateGeoDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000; // Earth radius in meters
+    const dLat = this.deg2rad(lat2 - lat1);
+    const dLon = this.deg2rad(lon2 - lon1);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(this.deg2rad(lat1)) *
+        Math.cos(this.deg2rad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  },
+
+  /**
+   * Convert degrees to radians
+   * @param {number} deg - Degrees
+   * @returns {number} - Radians
+   */
+  deg2rad(deg) {
+    return deg * (Math.PI / 180);
+  },
+
   /**
    * Get top hotspots from a set of accidents
    * @param {Array} accidents - Array of accident records
    * @param {number} limit - Number of hotspots to return
    * @returns {Array} - Array of top hotspots
    */
-  getTopHotspots(accidents, limit = 10) {
-    const { hotspots } = this.processAccidentData(accidents);
-    
+  async getTopHotspots(accidents, limit = 10) {
+    const { hotspots } = await this.processAccidentData(accidents);
+
     // Sort by intensity and limit the results
-    return hotspots
-      .sort((a, b) => b.intensity - a.intensity)
-      .slice(0, limit);
+    return hotspots.sort((a, b) => b.intensity - a.intensity).slice(0, limit);
   },
 
   /**
@@ -865,5 +1715,5 @@ export const accidentDataService = {
    */
   clearCache() {
     cache.clear();
-  }
+  },
 };

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import "ol/ol.css";
-import { Map, View } from "ol";
+import { Map, View, Overlay } from "ol";
 import { defaults as defaultControls } from "ol/control";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
@@ -24,15 +24,15 @@ const DEFAULT_ZOOM = MIN_ZOOM;
 // Florida bounding box coordinates (with small margin)
 const FLORIDA_EXTENT = [
   -87.8, // Western boundary (slightly west of Pensacola)
-  24.2,  // Southern boundary (includes the Keys)
+  24.2, // Southern boundary (includes the Keys)
   -79.7, // Eastern boundary (past Jacksonville)
-  31.2   // Northern boundary (slightly north of the Florida/Georgia border)
+  31.2, // Northern boundary (slightly north of the Florida/Georgia border)
 ];
 
 // Convert the geographic coordinates to the projection used by OpenLayers
 const FLORIDA_EXTENT_PROJ = [
   ...fromLonLat([FLORIDA_EXTENT[0], FLORIDA_EXTENT[1]]),
-  ...fromLonLat([FLORIDA_EXTENT[2], FLORIDA_EXTENT[3]])
+  ...fromLonLat([FLORIDA_EXTENT[2], FLORIDA_EXTENT[3]]),
 ];
 
 // Crash point style
@@ -65,16 +65,16 @@ function getClusterStyle(feature) {
 
 // Function to generate a color based on intensity (0-1)
 function getHeatColor(intensity) {
-  // Yellow to orange to red gradient
+  // Google Maps style traffic colors (Green to Yellow to Red)
   if (intensity < 0.33) {
-    // Yellow (low intensity)
-    return `rgba(255, 255, 0, 0.7)`;
+    // Green (low intensity)
+    return `rgba(0, 220, 0, 0.8)`;
   } else if (intensity < 0.66) {
-    // Orange (medium intensity)
-    return `rgba(255, 165, 0, 0.7)`;
+    // Yellow (medium intensity)
+    return `rgba(255, 220, 0, 0.8)`;
   } else {
     // Red (high intensity)
-    return `rgba(255, 0, 0, 0.7)`;
+    return `rgba(220, 0, 0, 0.8)`;
   }
 }
 
@@ -82,28 +82,29 @@ function getHeatColor(intensity) {
 function getRoadSegmentStyle(feature) {
   const intensity = feature.get("intensity") || 0;
   const color = getHeatColor(intensity);
-  const width = 3 + intensity * 5; // Width increases with intensity
+  const width = Math.max(3, 3 + intensity * 6); // Width increases with intensity, minimum 3px
+  const isRealRoad = feature.get("isRealRoad") || false;
 
   return new Style({
     stroke: new Stroke({
       color: color,
       width: width,
+      // Use a smoother line style for real road geometries
+      lineCap: isRealRoad ? "round" : "square",
+      lineJoin: isRealRoad ? "round" : "miter",
     }),
   });
 }
 
 export default function HotspotMap({ onMapReady }) {
-  const {
-    accidents,
-    hotspots,
-    roadSegments,
-    showPoints,
-    loading
-  } = useAccidentContext();
-  
+  const { accidents, hotspots, roadSegments, showPoints, loading } =
+    useAccidentContext();
+
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
-  
+  const tooltipRef = useRef(null);
+  const tooltipOverlayRef = useRef(null);
+
   // Create sources for different layers
   const pointsSource = useRef(new VectorSource());
   const clusterSource = useRef(
@@ -141,63 +142,127 @@ export default function HotspotMap({ onMapReady }) {
   useEffect(() => {
     // Only update if the map is initialized
     if (!mapRef.current) return;
-    
+
     // Clear existing features
     roadSegmentsSource.current.clear();
-    
+
+    // Filter segments to only include those with real geometry
+    const realRoadSegments = roadSegments.filter(
+      (segment) => segment.isRealRoad
+    );
+
     // Add road segments as features
-    if (roadSegments && roadSegments.length > 0) {
-      console.log(`Adding ${roadSegments.length} road segments to map`);
-      
-      roadSegments.forEach(segment => {
-        const coordinates = segment.coordinates.map(coord =>
-          fromLonLat([coord[0], coord[1]])
+    if (realRoadSegments && realRoadSegments.length > 0) {
+      console.log(
+        `Adding ${realRoadSegments.length} real road segments to map (out of ${roadSegments.length} total)`
+      );
+
+      // Count real roads vs simple lines for logging (should only be real now)
+      let realRoadCount = 0;
+      let simpleLineCount = 0; // This should remain 0
+
+      // Process in batches to improve performance
+      const batchSize = 20;
+      const processBatch = (startIndex) => {
+        const endIndex = Math.min(
+          startIndex + batchSize,
+          realRoadSegments.length
         );
-        
-        const feature = new Feature({
-          geometry: new LineString(coordinates),
-          intensity: segment.intensity,
-          name: segment.name,
-          count: segment.count
-        });
-        
-        roadSegmentsSource.current.addFeature(feature);
-      });
+
+        for (let i = startIndex; i < endIndex; i++) {
+          const segment = realRoadSegments[i];
+
+          // Skip segments with less than 2 points (shouldn't happen for real roads, but safety check)
+          if (!segment.coordinates || segment.coordinates.length < 2) {
+            console.warn(
+              `Skipping segment with invalid coordinates:`,
+              segment.name
+            );
+            continue;
+          }
+
+          try {
+            const coordinates = segment.coordinates.map((coord) =>
+              fromLonLat([coord[0], coord[1]])
+            );
+
+            const feature = new Feature({
+              geometry: new LineString(coordinates),
+              intensity: segment.intensity,
+              name: segment.name,
+              count: segment.count,
+              isRealRoad: segment.isRealRoad || false,
+              county: segment.county,
+              city: segment.city,
+            });
+
+            roadSegmentsSource.current.addFeature(feature);
+
+            // Count for logging
+            if (segment.isRealRoad) {
+              realRoadCount++;
+            } else {
+              simpleLineCount++;
+            }
+          } catch (err) {
+            console.error(
+              `Error creating feature for road segment ${segment.name}:`,
+              err
+            );
+          }
+        }
+
+        // Process next batch if there are more segments
+        if (endIndex < realRoadSegments.length) {
+          setTimeout(() => processBatch(endIndex), 0);
+        } else {
+          console.log(
+            `Added road segments to map: ${realRoadCount} real roads, ${simpleLineCount} simple lines`
+          );
+
+          // Force map refresh after all batches are processed
+          if (mapRef.current) {
+            mapRef.current.render();
+          }
+        }
+      };
+
+      // Start processing batches
+      processBatch(0);
     }
-    
-    // Force map refresh
-    mapRef.current.render();
   }, [roadSegments]);
 
   // Update point features when accidents change
   useEffect(() => {
     // Only update if showing points and the map is initialized
     if (!showPoints || !mapRef.current) return;
-    
+
     // Clear existing points
     pointsSource.current.clear();
-    
+
     // Add individual accident points
     if (accidents && accidents.length > 0) {
-      console.log(`Adding ${accidents.length} individual accident points to map`);
-      
+      console.log(
+        `Adding ${accidents.length} individual accident points to map`
+      );
+
       const features = accidents
-        .map(accident => {
+        .map((accident) => {
           if (accident.latitude && accident.longitude) {
             return new Feature({
               geometry: new Point(
                 fromLonLat([accident.longitude, accident.latitude])
               ),
-              properties: accident
+              properties: accident,
             });
           }
           return null;
         })
         .filter(Boolean);
-      
+
       pointsSource.current.addFeatures(features);
     }
-    
+
     // Force map refresh
     mapRef.current.render();
   }, [accidents, showPoints]);
@@ -206,7 +271,7 @@ export default function HotspotMap({ onMapReady }) {
   useEffect(() => {
     if (crashesLayer.current) {
       crashesLayer.current.setVisible(showPoints);
-      
+
       // Force map refresh
       if (mapRef.current) {
         mapRef.current.render();
@@ -217,6 +282,23 @@ export default function HotspotMap({ onMapReady }) {
   // Initialize map
   useEffect(() => {
     if (!mapRef.current && mapContainerRef.current) {
+      // Create tooltip element if it doesn't exist yet
+      if (!tooltipRef.current) {
+        const tooltipElement = document.createElement("div");
+        tooltipElement.className = "tooltip-overlay hidden";
+        tooltipElement.style.position = "absolute";
+        tooltipElement.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+        tooltipElement.style.color = "white";
+        tooltipElement.style.padding = "8px";
+        tooltipElement.style.borderRadius = "4px";
+        tooltipElement.style.pointerEvents = "none";
+        tooltipElement.style.zIndex = "1000";
+        tooltipElement.style.fontSize = "12px";
+        tooltipElement.style.maxWidth = "300px";
+        document.body.appendChild(tooltipElement);
+        tooltipRef.current = tooltipElement;
+      }
+
       const mapInstance = new Map({
         target: mapContainerRef.current,
         controls: defaultControls({ zoom: false }),
@@ -231,8 +313,76 @@ export default function HotspotMap({ onMapReady }) {
           minZoom: MIN_ZOOM,
           maxZoom: MAX_ZOOM,
           extent: FLORIDA_EXTENT_PROJ,
-          constrainOnlyCenter: true
+          constrainOnlyCenter: true,
         }),
+      });
+
+      // Add tooltip overlay
+      tooltipOverlayRef.current = new Overlay({
+        element: tooltipRef.current,
+        offset: [0, -10],
+        positioning: "bottom-center",
+      });
+      mapInstance.addOverlay(tooltipOverlayRef.current);
+
+      // Add pointer move interaction to show tooltip on hover
+      mapInstance.on("pointermove", (evt) => {
+        const pixel = mapInstance.getEventPixel(evt.originalEvent);
+        const hit = mapInstance.hasFeatureAtPixel(pixel);
+        mapInstance.getTargetElement().style.cursor = hit ? "pointer" : "";
+
+        const tooltipElement = tooltipRef.current;
+
+        if (hit && tooltipElement) {
+          const feature = mapInstance.forEachFeatureAtPixel(
+            pixel,
+            (feature) => feature
+          );
+
+          if (feature && feature.getGeometry().getType() === "LineString") {
+            // It's a road segment
+            const name = feature.get("name") || "Unknown Road";
+            const intensity = feature.get("intensity") || 0;
+            const count = feature.get("count") || 0;
+            const county = feature.get("county") || "Unknown";
+            const city = feature.get("city") || "Unknown";
+            const isRealRoad = feature.get("isRealRoad");
+
+            tooltipElement.innerHTML = `
+              <div>
+                <strong>${name}</strong>
+                <div>County: ${county}, City: ${city}</div>
+                <div>Accidents: ${count}</div>
+                <div>Danger level: ${Math.round(intensity * 100)}%</div>
+                ${
+                  isRealRoad
+                    ? "<div><small>Using precise road geometry</small></div>"
+                    : ""
+                }
+              </div>
+            `;
+
+            tooltipElement.classList.remove("hidden");
+            tooltipOverlayRef.current.setPosition(evt.coordinate);
+          } else if (feature && feature.get("features")) {
+            // It's a cluster
+            const size = feature.get("features").length;
+
+            tooltipElement.innerHTML = `
+              <div>
+                <strong>${size} accident${size > 1 ? "s" : ""}</strong>
+                <div>Click to zoom to this area</div>
+              </div>
+            `;
+
+            tooltipElement.classList.remove("hidden");
+            tooltipOverlayRef.current.setPosition(evt.coordinate);
+          } else {
+            tooltipElement.classList.add("hidden");
+          }
+        } else if (tooltipElement) {
+          tooltipElement.classList.add("hidden");
+        }
       });
 
       mapRef.current = mapInstance;
@@ -248,7 +398,7 @@ export default function HotspotMap({ onMapReady }) {
             const view = mapInstance.getView();
             view.animate({ zoom: view.getZoom() + delta, duration: 250 });
           },
-          getVectorSource: () => pointsSource.current
+          getVectorSource: () => pointsSource.current,
         });
       }
     }
@@ -258,6 +408,12 @@ export default function HotspotMap({ onMapReady }) {
       if (mapRef.current) {
         mapRef.current.setTarget(undefined);
         mapRef.current = null;
+      }
+
+      // Remove tooltip element when component unmounts
+      if (tooltipRef.current) {
+        document.body.removeChild(tooltipRef.current);
+        tooltipRef.current = null;
       }
     };
   }, [onMapReady]);
