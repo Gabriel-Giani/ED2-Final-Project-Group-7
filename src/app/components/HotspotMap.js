@@ -1,21 +1,20 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import "ol/ol.css";
-import { Map, View, Overlay } from "ol";
+import { Map, View } from "ol";
 import { defaults as defaultControls } from "ol/control";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { OSM } from "ol/source";
 import { fromLonLat } from "ol/proj";
-import { boundingExtent } from "ol/extent";
 import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
 import LineString from "ol/geom/LineString";
 import { Circle, Style, Fill, Stroke, Text } from "ol/style";
 import Cluster from "ol/source/Cluster";
-import { supabase, batchFetchData } from "../supabaseClient";
+import { useAccidentContext } from "@/context/accidentContext";
 import "../styles/map.css";
 import {
   getStateHotspots,
@@ -74,7 +73,7 @@ function getClusterStyle(feature) {
 
 // Function to generate a color based on intensity (0-1)
 function getHeatColor(intensity) {
-  // Yellow to orange to red gradient (no green)
+  // Yellow to orange to red gradient
   if (intensity < 0.33) {
     // Yellow (low intensity)
     return `rgba(255, 255, 0, 0.7)`;
@@ -101,15 +100,15 @@ function getRoadSegmentStyle(feature) {
   });
 }
 
-export default function HotspotMap({
-  onMapReady,
-  showPoints = false,
-  filterRegion = null,
-  regionName = null,
-  dateRange = null,
-  timeRange = null,
-  shouldRefresh = false, // Control when to refresh
-}) {
+export default function HotspotMap({ onMapReady }) {
+  const {
+    accidents,
+    hotspots,
+    roadSegments,
+    showPoints,
+    loading
+  } = useAccidentContext();
+  
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const [loading, setLoading] = useState(false);
@@ -122,6 +121,7 @@ export default function HotspotMap({
     timeRange,
   });
 
+  
   // Create sources for different layers
   const pointsSource = useRef(new VectorSource());
   const clusterSource = useRef(
@@ -133,25 +133,29 @@ export default function HotspotMap({
   const roadSegmentsSource = useRef(new VectorSource());
 
   // Create layers
-  const crashesLayer = new VectorLayer({
-    source: clusterSource.current,
-    style: getClusterStyle,
-    zIndex: 2,
-    visible: showPoints,
-  });
+  const crashesLayer = useRef(
+    new VectorLayer({
+      source: clusterSource.current,
+      style: getClusterStyle,
+      zIndex: 2,
+      visible: showPoints,
+    })
+  );
 
-  const roadSegmentsLayer = new VectorLayer({
-    source: roadSegmentsSource.current,
-    style: getRoadSegmentStyle,
-    zIndex: 1,
-  });
+  const roadSegmentsLayer = useRef(
+    new VectorLayer({
+      source: roadSegmentsSource.current,
+      style: getRoadSegmentStyle,
+      zIndex: 1,
+    })
+  );
 
   const viewStateRef = useRef({
     center: fromLonLat([-82.4497, 27.6648]), // Center of Florida
     zoom: DEFAULT_ZOOM,
   });
 
-  // Update internal filter state without triggering re-renders
+  // Update map layers with accident data from context
   useEffect(() => {
     filterStateRef.current = {
       filterRegion,
@@ -226,141 +230,59 @@ export default function HotspotMap({
           maxBatches: 10,
           cacheTTL: 300000, // 5 minutes cache
         });
-
-        console.log(`Fetched ${stateData.length} state-wide accident records`);
-
-        // Process the data to get hotspots
-        const result = await getStateHotspots(stateData);
-        hotspots = result.hotspots;
-        roadSegments = result.roadSegments;
-      }
-
-      // Clear existing features
-      roadSegmentsSource.current.clear();
-
-      // Add road segments as features
-      if (roadSegments && roadSegments.length > 0) {
-        console.log(`Adding ${roadSegments.length} road segments to map`);
-
-        roadSegments.forEach((segment) => {
-          const coordinates = segment.coordinates.map((coord) =>
-            fromLonLat([coord[0], coord[1]])
-          );
-          const feature = new Feature({
-            geometry: new LineString(coordinates),
-            intensity: segment.intensity,
-          });
-
-          roadSegmentsSource.current.addFeature(feature);
-        });
-      } else {
-        console.log("No road segments to display");
-      }
-
-      // If showPoints is true, also fetch and display individual points
-      if (showPoints) {
-        await fetchCrashData();
-      }
-    } catch (error) {
-      console.error("Error fetching hotspots:", error);
-    } finally {
-      setLoading(false);
+        
+        roadSegmentsSource.current.addFeature(feature);
+      });
     }
-  }
+    
+    // Force map refresh
+    mapRef.current.render();
+  }, [roadSegments]);
 
-  // Function to fetch crash data points
-  async function fetchCrashData() {
-    try {
-      console.log("Fetching crash data points...");
-      const { dateRange, timeRange } = filterStateRef.current;
-
-      let data;
-
-      // If date range is provided, use it to filter
-      if (dateRange?.start && dateRange?.end) {
-        if (timeRange?.start && timeRange?.end) {
-          data = await getAccidentsByDateAndTimeRange(
-            dateRange.start,
-            dateRange.end,
-            timeRange.start,
-            timeRange.end
-          );
-        } else {
-          const { data: accidentData, error } = await supabase
-            .from("ultimate-table")
-            .select("*")
-            .gte("crashdate", dateRange.start)
-            .lte("crashdate", dateRange.end);
-
-          if (error) throw error;
-          data = accidentData;
-        }
-      } else {
-        // Fetch all crash records with a reasonable limit
-        const { data: accidentData, error } = await supabase
-          .from("ultimate-table")
-          .select("latitude, longitude")
-          .limit(5000); // Limit to prevent performance issues
-
-        if (error) throw error;
-        data = accidentData;
-      }
-
-      if (!data || data.length === 0) {
-        console.log("No crash data found.");
-        return;
-      }
-
-      console.log(`Fetched ${data.length} crash records.`);
-
-      // Convert fetched data to OpenLayers Features
-      const features = data
-        .map((crash) => {
-          if (crash.latitude && crash.longitude) {
+  // Update point features when accidents change
+  useEffect(() => {
+    // Only update if showing points and the map is initialized
+    if (!showPoints || !mapRef.current) return;
+    
+    // Clear existing points
+    pointsSource.current.clear();
+    
+    // Add individual accident points
+    if (accidents && accidents.length > 0) {
+      console.log(`Adding ${accidents.length} individual accident points to map`);
+      
+      const features = accidents
+        .map(accident => {
+          if (accident.latitude && accident.longitude) {
             return new Feature({
               geometry: new Point(
-                fromLonLat([crash.longitude, crash.latitude])
+                fromLonLat([accident.longitude, accident.latitude])
               ),
-              properties: crash,
+              properties: accident
             });
           }
           return null;
         })
         .filter(Boolean);
-
-      // Add features to the source
-      pointsSource.current.clear();
+      
       pointsSource.current.addFeatures(features);
+    }
+    
+    // Force map refresh
+    mapRef.current.render();
+  }, [accidents, showPoints]);
 
+  // Update crashes layer visibility when showPoints changes
+  useEffect(() => {
+    if (crashesLayer.current) {
+      crashesLayer.current.setVisible(showPoints);
+      
       // Force map refresh
       if (mapRef.current) {
         mapRef.current.render();
       }
-    } catch (error) {
-      console.error("Error in fetchCrashData:", error);
-    }
-  }
-
-  // Toggle visibility of points layer
-  useEffect(() => {
-    if (crashesLayer) {
-      crashesLayer.setVisible(showPoints);
-
-      // If toggling to show points and we don't have any yet, fetch them
-      if (showPoints && pointsSource.current.getFeatures().length === 0) {
-        fetchCrashData();
-      }
     }
   }, [showPoints]);
-
-  // IMPORTANT: This is the key effect change - ONLY refresh when shouldRefresh is true
-  // and remove all other dependencies from the array
-  useEffect(() => {
-    if (mapRef.current && shouldRefresh) {
-      console.log("Map refreshing due to explicit refresh request");
-      fetchHotspots();
-    }
-  }, [shouldRefresh]); // <-- THIS IS THE KEY CHANGE: Only shouldRefresh triggers map refresh
 
   // Initialize map
   useEffect(() => {
@@ -370,8 +292,8 @@ export default function HotspotMap({
         controls: defaultControls({ zoom: false }),
         layers: [
           new TileLayer({ source: new OSM(), zIndex: 0 }),
-          roadSegmentsLayer,
-          crashesLayer,
+          roadSegmentsLayer.current,
+          crashesLayer.current,
         ],
         view: new View({
           center: viewStateRef.current.center,
@@ -385,9 +307,6 @@ export default function HotspotMap({
 
       mapRef.current = mapInstance;
 
-      // Initial fetch of hotspots when the map is initialized
-      fetchHotspots();
-
       if (onMapReady) {
         onMapReady({
           getView: () => mapInstance.getView(),
@@ -399,8 +318,7 @@ export default function HotspotMap({
             const view = mapInstance.getView();
             view.animate({ zoom: view.getZoom() + delta, duration: 250 });
           },
-          fetchHotspots: fetchHotspots,
-          fetchCrashData: fetchCrashData,
+          getVectorSource: () => pointsSource.current
         });
       }
     }
@@ -412,7 +330,7 @@ export default function HotspotMap({
         mapRef.current = null;
       }
     };
-  }, [onMapReady]); // Only depends on onMapReady
+  }, [onMapReady]);
 
   return (
     <div className="relative w-full h-full">
@@ -422,7 +340,7 @@ export default function HotspotMap({
       />
       {loading && (
         <div className="absolute top-2 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-70 text-white px-4 py-2 rounded-full z-10">
-          Loading hotspots...
+          Loading data...
         </div>
       )}
     </div>

@@ -2,8 +2,11 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { useAccidentContext } from "@/context/accidentContext";
 
-export default function ViewToggle({ showPoints, onToggle }) {
+export default function ViewToggle() {
+  const { showPoints, togglePointsView } = useAccidentContext();
+
   return (
     <div className="absolute top-16 right-4 z-10">
       <motion.div
@@ -15,7 +18,7 @@ export default function ViewToggle({ showPoints, onToggle }) {
         <div className="flex items-center justify-between">
           <span className="mr-3 font-medium">View Mode:</span>
           <button
-            onClick={onToggle}
+            onClick={togglePointsView}
             className="relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none"
           >
             <span

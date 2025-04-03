@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useRef } from "react";
 import HotspotMap from "./components/HotspotMap";
 import TopHotspots from "./components/TopHotspots";
 import ViewToggle from "./components/ViewToggle";
@@ -15,6 +15,8 @@ import { Feature } from "ol";
 import Point from "ol/geom/Point";
 import { fromLonLat } from "ol/proj";
 import Link from "next/link";
+import { fromLonLat } from "ol/proj";
+import { useAccidentContext } from "@/context/accidentContext";
 
 export default function HomePage() {
   // Map reference
@@ -23,29 +25,10 @@ export default function HomePage() {
   const holdTimeoutRef = useRef(null);
   const isHoldingRef = useRef(false);
 
-  // View mode state
-  const [showPoints, setShowPoints] = useState(false);
-
-  // Region filter state
-  const [filterRegion, setFilterRegion] = useState("state");
-  const [regionName, setRegionName] = useState("");
-
-  // Add map refresh control state
-  const [mapShouldRefresh, setMapShouldRefresh] = useState(false);
-
   // Called by map.js once the map is ready
   const handleMapReady = (mapInstance) => {
     mapRef.current = mapInstance;
   };
-
-  // FILTER states
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
-  const [timeRange, setTimeRange] = useState({ start: "", end: "" });
-  const [locationRadius, setLocationRadius] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Add new state for time filter toggle
-  const [useTimeFilter, setUseTimeFilter] = useState(false);
 
   // Single step zoom (for clicks)
   const handleSingleZoom = (direction) => {
@@ -95,96 +78,6 @@ export default function HomePage() {
     stopAllZooming();
   };
 
-  // FILTERS - Modified to control map refresh
-  const applyFilters = async () => {
-    if (!mapRef.current) return;
-
-    setIsLoading(true);
-    try {
-      // Set map refresh flag to true
-      setMapShouldRefresh(true);
-
-      // Check if we have valid dates
-      if (dateRange.start && dateRange.end) {
-        let accidents;
-
-        // Apply date and time filter if time filter is enabled
-        if (useTimeFilter && timeRange.start && timeRange.end) {
-          accidents = await getAccidentsByDateAndTimeRange(
-            dateRange.start,
-            dateRange.end,
-            timeRange.start,
-            timeRange.end
-          );
-        } else {
-          // Otherwise just filter by date
-          accidents = await getAccidentsByDateRange(
-            dateRange.start,
-            dateRange.end
-          );
-        }
-
-        // Convert accidents to features and update map
-        if (mapRef.current && accidents) {
-          const features = accidents
-            .map((crash) => {
-              if (crash.latitude && crash.longitude) {
-                return new Feature({
-                  geometry: new Point(
-                    fromLonLat([crash.longitude, crash.latitude])
-                  ),
-                  properties: crash,
-                });
-              }
-              return null;
-            })
-            .filter(Boolean);
-
-          // Update the vector source with new features
-          const vectorSource = mapRef.current.getVectorSource();
-          vectorSource.clear();
-          vectorSource.addFeatures(features);
-        }
-      }
-    } catch (error) {
-      console.error("Error applying filters:", error);
-    } finally {
-      setIsLoading(false);
-
-      // Reset the refresh flag after a short delay
-      setTimeout(() => {
-        setMapShouldRefresh(false);
-      }, 100);
-    }
-  };
-
-  // Reset filters - Modified to control map refresh
-  const resetFilters = () => {
-    setDateRange({ start: "", end: "" });
-    setTimeRange({ start: "", end: "" });
-    setUseTimeFilter(false);
-    setLocationRadius("");
-    setFilterRegion("state");
-    setRegionName("");
-
-    // Set map refresh flag to true
-    setMapShouldRefresh(true);
-
-    if (mapRef.current) {
-      mapRef.current.fetchCrashData({});
-    }
-
-    // Reset the refresh flag after a short delay
-    setTimeout(() => {
-      setMapShouldRefresh(false);
-    }, 100);
-  };
-
-  // Handle view mode toggle
-  const handleViewToggle = () => {
-    setShowPoints(!showPoints);
-  };
-
   // Handle hotspot click
   const handleHotspotClick = (hotspot) => {
     if (mapRef.current && hotspot.center) {
@@ -202,29 +95,13 @@ export default function HomePage() {
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-gray-900 text-white">
       {/* NAV BAR */}
       <div className="h-14 flex items-center justify-between px-4 bg-gray-900 border-b border-gray-700 relative">
-        {/* FILTERS BUTTON - Now a separate component */}
-        <FiltersButton
-          filterRegion={filterRegion}
-          setFilterRegion={setFilterRegion}
-          regionName={regionName}
-          setRegionName={setRegionName}
-          dateRange={dateRange}
-          setDateRange={setDateRange}
-          timeRange={timeRange}
-          setTimeRange={setTimeRange}
-          useTimeFilter={useTimeFilter}
-          setUseTimeFilter={setUseTimeFilter}
-          locationRadius={locationRadius}
-          setLocationRadius={setLocationRadius}
-          applyFilters={applyFilters}
-          resetFilters={resetFilters}
-          isLoading={isLoading}
-        />
+        {/* FILTERS BUTTON */}
+        <FiltersButton />
 
         {/* TITLE */}
         <h1 className="text-lg font-bold">Don&apos;t Drive Here</h1>
 
-        {/* ABOUT BUTTON - Now a separate component */}
+        {/* ABOUT BUTTON */}
         <AboutButton />
       </div>
 
@@ -232,37 +109,20 @@ export default function HomePage() {
       <div className="relative flex-1">
         {/* MAP */}
         <div className="w-full h-full rounded-xl overflow-hidden">
-          <HotspotMap
-            onMapReady={handleMapReady}
-            showPoints={showPoints}
-            filterRegion={filterRegion}
-            regionName={regionName}
-            dateRange={dateRange.start && dateRange.end ? dateRange : null}
-            timeRange={
-              useTimeFilter && timeRange.start && timeRange.end
-                ? timeRange
-                : null
-            }
-            shouldRefresh={mapShouldRefresh}
-          />
+          <HotspotMap onMapReady={handleMapReady} />
         </div>
 
         {/* View Toggle */}
-        <ViewToggle showPoints={showPoints} onToggle={handleViewToggle} />
+        <ViewToggle />
 
         {/* Top Hotspots */}
-        <TopHotspots
-          dateRange={dateRange.start && dateRange.end ? dateRange : null}
-          timeRange={
-            useTimeFilter && timeRange.start && timeRange.end ? timeRange : null
-          }
-          onHotspotClick={handleHotspotClick}
-        />
+        <TopHotspots onHotspotClick={handleHotspotClick} />
 
         {/* ZOOM BUTTONS */}
         <div className="absolute top-4 right-4 flex flex-col space-y-1 z-20">
           <motion.button
             type="button"
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="bg-white text-black rounded p-2 shadow hover:bg-gray-100"
             onPointerDown={() => handlePointerDown("in")}
@@ -273,6 +133,7 @@ export default function HomePage() {
           </motion.button>
           <motion.button
             type="button"
+            whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.9 }}
             className="bg-white text-black rounded p-2 shadow hover:bg-gray-100"
             onPointerDown={() => handlePointerDown("out")}
