@@ -5,7 +5,11 @@ import { motion } from "framer-motion";
 import { useAccidentContext } from "@/context/accidentContext";
 
 export default function ViewToggle() {
-  const { showPoints, togglePointsView } = useAccidentContext();
+  const { mapViewType, setMapViewType } = useAccidentContext();
+
+  const handleViewChange = (view) => {
+    setMapViewType(view);
+  };
 
   return (
     <div className="absolute top-16 right-4 z-10">
@@ -13,28 +17,32 @@ export default function ViewToggle() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="bg-gray-900 bg-opacity-90 text-white rounded-lg shadow-lg overflow-hidden p-3"
+        className="bg-gray-900 bg-opacity-90 text-white rounded-lg shadow-lg overflow-hidden p-2"
       >
-        <div className="flex items-center justify-between">
-          <span className="mr-3 font-medium">View Mode:</span>
+        <div className="flex items-center space-x-2">
+          <span className="mr-2 font-medium text-sm">View:</span>
+
           <button
-            onClick={togglePointsView}
-            className="relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none"
+            onClick={() => handleViewChange("hotspots")}
+            className={`px-3 py-1 rounded text-sm transition-colors focus:outline-none ${
+              mapViewType === "hotspots"
+                ? "bg-blue-600 text-white font-semibold"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }`}
           >
-            <span
-              className={`${
-                showPoints ? "bg-blue-600" : "bg-gray-700"
-              } absolute h-6 w-11 rounded-full transition-colors`}
-            />
-            <span
-              className={`${
-                showPoints ? "translate-x-6" : "translate-x-1"
-              } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-            />
+            Hotspots
           </button>
-        </div>
-        <div className="text-xs text-gray-400 mt-1">
-          {showPoints ? "Individual Points" : "Hotspot Heatmap"}
+
+          <button
+            onClick={() => handleViewChange("roadLines")}
+            className={`px-3 py-1 rounded text-sm transition-colors focus:outline-none ${
+              mapViewType === "roadLines"
+                ? "bg-blue-600 text-white font-semibold"
+                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+            }`}
+          >
+            Road Lines
+          </button>
         </div>
       </motion.div>
     </div>
