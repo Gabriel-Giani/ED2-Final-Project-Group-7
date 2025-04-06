@@ -1,38 +1,52 @@
 "use client";
 
 import React, { useRef } from "react";
-import HotspotMap from "./components/HotspotMap";
 import RoadLineMap from "../components/RoadLineMap";
-import TopHotspots from "./components/TopHotspots";
-import ViewToggle from "./components/ViewToggle";
+import TopRoadSegments from "../components/TopRoadSegments";
 import FiltersButton from "./components/FiltersButton";
 import AboutButton from "./components/AboutButton";
 import { motion } from "framer-motion";
-import { fromLonLat } from "ol/proj";
+import { fromLonLat, toLonLat, transformExtent } from "ol/proj";
+import { getExtent } from "ol/extent";
 import { useAccidentContext } from "@/context/accidentContext";
 
+// Helper to calculate bounding box from LonLat coordinates
+function calculateLonLatBoundingBox(coordinates) {
+  if (!coordinates || coordinates.length === 0) return null;
+  let minLon = Infinity,
+    minLat = Infinity,
+    maxLon = -Infinity,
+    maxLat = -Infinity;
+  coordinates.forEach(([lon, lat]) => {
+    minLon = Math.min(minLon, lon);
+    minLat = Math.min(minLat, lat);
+    maxLon = Math.max(maxLon, lon);
+    maxLat = Math.max(maxLat, lat);
+  });
+  // Return extent in [minLon, minLat, maxLon, maxLat] format
+  return [minLon, minLat, maxLon, maxLat];
+}
+
 export default function HomePage() {
-  // Map reference (potentially used by both map types)
+  // Map reference for RoadLineMap
   const mapRef = useRef(null);
   const zoomIntervalRef = useRef(null);
   const holdTimeoutRef = useRef(null);
   const isHoldingRef = useRef(false);
 
   // Get state from context
-  const { mapViewType, loading, loadingMessage, getTopHotspots } =
-    useAccidentContext();
+  const { loading, loadingMessage } = useAccidentContext();
 
-  // Called by map components once the map instance is ready
+  // Called by RoadLineMap when the map instance is ready
   const handleMapReady = (mapInstance) => {
     mapRef.current = mapInstance;
   };
 
-  // --- Zoom Logic (Applies to the currently displayed map) ---
+  // --- Zoom Logic ---
   const getCurrentView = () => {
     return mapRef.current?.getView();
   };
 
-  // Single step zoom
   const handleSingleZoom = (direction) => {
     const view = getCurrentView();
     if (!view) return;
@@ -43,7 +57,6 @@ export default function HomePage() {
     });
   };
 
-  // Continuous zoom
   const startContinuousZoom = (direction) => {
     const view = getCurrentView();
     if (!view) return;
@@ -51,7 +64,6 @@ export default function HomePage() {
 
     zoomIntervalRef.current = setInterval(() => {
       const currentZoom = view.getZoom();
-      // Ensure zoom stays within map limits if defined
       const newZoom = Math.max(
         view.getMinZoom() || 0,
         Math.min(view.getMaxZoom() || 28, currentZoom + zoomStep)
@@ -72,7 +84,6 @@ export default function HomePage() {
     isHoldingRef.current = false;
   };
 
-  // Pointer event handlers for zoom buttons
   const handlePointerDown = (direction) => {
     isHoldingRef.current = false;
     holdTimeoutRef.current = setTimeout(() => {
@@ -88,15 +99,34 @@ export default function HomePage() {
     stopAllZooming();
   };
 
-  // Handle hotspot click (only relevant when hotspots are shown)
-  const handleHotspotClick = (hotspot) => {
+  // Handle segment click from the list
+  const handleSegmentClick = (segment) => {
     const view = getCurrentView();
-    if (view && hotspot.center) {
-      view.animate({
-        center: fromLonLat(hotspot.center),
-        zoom: 14,
-        duration: 500,
+    if (!view || !segment?.geometry?.coordinates) return;
+
+    try {
+      // 1. Calculate the bounding box (extent) of the segment in LonLat
+      const lonLatExtent = calculateLonLatBoundingBox(
+        segment.geometry.coordinates
+      );
+      if (!lonLatExtent) return;
+
+      // 2. Transform the extent to the map's projection (likely EPSG:3857)
+      const mapProjection = view.getProjection(); // Get map projection
+      const transformedExtent = transformExtent(
+        lonLatExtent,
+        "EPSG:4326",
+        mapProjection
+      );
+
+      // 3. Zoom the map to fit this extent with some padding
+      view.fit(transformedExtent, {
+        padding: [50, 50, 50, 50], // Add padding around the segment
+        duration: 1000, // Animation duration
+        maxZoom: 16, // Optional: Limit max zoom level
       });
+    } catch (error) {
+      console.error("Error zooming to segment:", error);
     }
   };
 
@@ -113,21 +143,11 @@ export default function HomePage() {
       <div className="relative flex-1">
         {/* MAP CONTAINER */}
         <div className="w-full h-full rounded-xl overflow-hidden">
-          {mapViewType === "hotspots" && (
-            <HotspotMap onMapReady={handleMapReady} />
-          )}
-          {mapViewType === "roadLines" && (
-            <RoadLineMap onMapReady={handleMapReady} />
-          )}
+          <RoadLineMap onMapReady={handleMapReady} />
         </div>
 
-        {/* View Toggle */}
-        <ViewToggle />
-
-        {/* Top Hotspots (Only show if in hotspots view?) */}
-        {mapViewType === "hotspots" && (
-          <TopHotspots onHotspotClick={handleHotspotClick} />
-        )}
+        {/* Top Road Segments List */}
+        <TopRoadSegments onSegmentClick={handleSegmentClick} />
 
         {/* ZOOM BUTTONS */}
         <div className="absolute top-4 right-4 flex flex-col space-y-1 z-20">

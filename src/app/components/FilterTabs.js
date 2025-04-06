@@ -10,18 +10,18 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
 
   // Update a single filter value
   const updateLocalFilter = (name, value) => {
-    setLocalFilters(prev => ({
+    setLocalFilters((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   // Handle region type change
   const handleRegionChange = (region, name) => {
-    setLocalFilters(prev => ({
+    setLocalFilters((prev) => ({
       ...prev,
       filterRegion: region,
-      regionName: name
+      regionName: name,
     }));
   };
 
@@ -35,7 +35,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
       { value: "4", label: "Thursday" },
       { value: "5", label: "Friday" },
       { value: "6", label: "Saturday" },
-      { value: "7", label: "Sunday" }
+      { value: "7", label: "Sunday" },
     ],
     injuryLevel: [
       { value: "", label: "Any injury level" },
@@ -43,7 +43,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
       { value: "2", label: "Possible injury" },
       { value: "3", label: "Non-incapacitating injury" },
       { value: "4", label: "Incapacitating injury" },
-      { value: "5", label: "Fatal injury" }
+      { value: "5", label: "Fatal injury" },
     ],
     lightCondition: [
       { value: "", label: "Any light condition" },
@@ -51,7 +51,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
       { value: "02", label: "Dusk" },
       { value: "03", label: "Dawn" },
       { value: "04", label: "Dark (street lights)" },
-      { value: "05", label: "Dark (no street lights)" }
+      { value: "05", label: "Dark (no street lights)" },
     ],
     weatherCondition: [
       { value: "", label: "Any weather" },
@@ -59,7 +59,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
       { value: "02", label: "Cloudy" },
       { value: "03", label: "Rain" },
       { value: "04", label: "Fog" },
-      { value: "77", label: "Other" }
+      { value: "77", label: "Other" },
     ],
     roadSurfaceCondition: [
       { value: "", label: "Any road condition" },
@@ -67,7 +67,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
       { value: "02", label: "Wet" },
       { value: "03", label: "Slippery" },
       { value: "04", label: "Icy" },
-      { value: "77", label: "Other" }
+      { value: "77", label: "Other" },
     ],
     direction: [
       { value: "", label: "Any direction" },
@@ -78,14 +78,14 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
       { value: "NE", label: "Northeast" },
       { value: "SE", label: "Southeast" },
       { value: "SW", label: "Southwest" },
-      { value: "NW", label: "Northwest" }
-    ]
+      { value: "NW", label: "Northwest" },
+    ],
   };
 
   // Toggle switch component for boolean filters
   const ToggleSwitch = ({ label, name }) => {
     const isChecked = localFilters[name];
-    
+
     return (
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-medium text-gray-700">{label}</span>
@@ -96,12 +96,12 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
             updateLocalFilter(name, !isChecked);
           }}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-            isChecked ? 'bg-blue-600' : 'bg-gray-300'
+            isChecked ? "bg-blue-600" : "bg-gray-300"
           }`}
         >
           <span
             className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              isChecked ? 'translate-x-6' : 'translate-x-1'
+              isChecked ? "translate-x-6" : "translate-x-1"
             }`}
           />
         </button>
@@ -192,7 +192,9 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
                 regionType={localFilters.filterRegion}
                 regionName={localFilters.regionName}
                 onRegionChange={handleRegionChange}
-                options={localFilters.filterRegion === "county" ? counties : cities}
+                options={
+                  localFilters.filterRegion === "county" ? counties : cities
+                }
               />
             )}
           </div>
@@ -210,7 +212,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
                 onChange={(e) => {
                   const newDateRange = {
                     ...localFilters.dateRange,
-                    start: e.target.value
+                    start: e.target.value,
                   };
                   updateLocalFilter("dateRange", newDateRange);
                 }}
@@ -223,7 +225,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
                 onChange={(e) => {
                   const newDateRange = {
                     ...localFilters.dateRange,
-                    end: e.target.value
+                    end: e.target.value,
                   };
                   updateLocalFilter("dateRange", newDateRange);
                 }}
@@ -238,12 +240,17 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
               <input
                 type="checkbox"
                 checked={localFilters.useTimeFilter}
-                onChange={(e) => updateLocalFilter("useTimeFilter", e.target.checked)}
+                onChange={(e) =>
+                  updateLocalFilter("useTimeFilter", e.target.checked)
+                }
                 onClick={(e) => e.stopPropagation()}
                 className="rounded border-gray-300"
                 id="time-filter-checkbox"
               />
-              <label htmlFor="time-filter-checkbox" className="font-medium text-gray-700">
+              <label
+                htmlFor="time-filter-checkbox"
+                className="font-medium text-gray-700"
+              >
                 Time Range:
               </label>
             </div>
@@ -255,7 +262,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
                 onChange={(e) => {
                   const newTimeRange = {
                     ...localFilters.timeRange,
-                    start: e.target.value
+                    start: e.target.value,
                   };
                   updateLocalFilter("timeRange", newTimeRange);
                 }}
@@ -269,7 +276,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
                 onChange={(e) => {
                   const newTimeRange = {
                     ...localFilters.timeRange,
-                    end: e.target.value
+                    end: e.target.value,
                   };
                   updateLocalFilter("timeRange", newTimeRange);
                 }}
@@ -278,7 +285,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
               />
             </div>
           </div>
-          
+
           {/* Day of Week */}
           <div className="mb-4">
             <label className="block font-medium text-gray-700 mb-2">
@@ -290,14 +297,14 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
               onChange={(e) => updateLocalFilter("dayOfWeek", e.target.value)}
               onClick={(e) => e.stopPropagation()}
             >
-              {filterOptions.dayOfWeek.map(option => (
+              {filterOptions.dayOfWeek.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </select>
           </div>
-          
+
           {/* Road Name */}
           <div className="mb-4">
             <label className="block font-medium text-gray-700 mb-2">
@@ -312,6 +319,27 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
               onClick={(e) => e.stopPropagation()}
             />
           </div>
+
+          {/* Top Segments Limit */}
+          <div className="mb-4">
+            <label
+              htmlFor="top-segments-limit"
+              className="block font-medium text-gray-700 mb-2"
+            >
+              Top Ranked Roads Limit:
+            </label>
+            <input
+              id="top-segments-limit"
+              type="number"
+              min="1" // Prevent negative or zero visually
+              className="border rounded p-2 w-full"
+              value={localFilters.topSegmentsLimit || ""} // Use localFilters
+              onChange={(e) =>
+                updateLocalFilter("topSegmentsLimit", e.target.value)
+              } // Use updateLocalFilter
+              onClick={(e) => e.stopPropagation()} // Prevent closing popup
+            />
+          </div>
         </div>
       )}
 
@@ -319,7 +347,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
       {activeTab === "advanced" && (
         <div>
           <h2 className="font-bold text-lg mb-3">Crash Characteristics</h2>
-          
+
           {/* Injury Level */}
           <div className="mb-4">
             <label className="block font-medium text-gray-700 mb-2">
@@ -331,104 +359,145 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
               onChange={(e) => updateLocalFilter("injuryLevel", e.target.value)}
               onClick={(e) => e.stopPropagation()}
             >
-              {filterOptions.injuryLevel.map(option => (
+              {filterOptions.injuryLevel.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </select>
           </div>
-          
+
           {/* Environmental Conditions */}
-          <h2 className="font-bold text-lg mb-3 mt-6">Environmental Conditions</h2>
-          
+          <h2 className="font-bold text-lg mb-3 mt-6">
+            Environmental Conditions
+          </h2>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               {/* Light Condition */}
               <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-2">Light:</label>
+                <label className="block font-medium text-gray-700 mb-2">
+                  Light:
+                </label>
                 <select
                   className="border rounded p-2 w-full"
                   value={localFilters.lightCondition}
-                  onChange={(e) => updateLocalFilter("lightCondition", e.target.value)}
+                  onChange={(e) =>
+                    updateLocalFilter("lightCondition", e.target.value)
+                  }
                 >
-                  {filterOptions.lightCondition.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
+                  {filterOptions.lightCondition.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
                   ))}
                 </select>
               </div>
             </div>
-            
+
             <div>
               {/* Weather Condition */}
               <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-2">Weather:</label>
+                <label className="block font-medium text-gray-700 mb-2">
+                  Weather:
+                </label>
                 <select
                   className="border rounded p-2 w-full"
                   value={localFilters.weatherCondition}
-                  onChange={(e) => updateLocalFilter("weatherCondition", e.target.value)}
+                  onChange={(e) =>
+                    updateLocalFilter("weatherCondition", e.target.value)
+                  }
                 >
-                  {filterOptions.weatherCondition.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
+                  {filterOptions.weatherCondition.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
                   ))}
                 </select>
               </div>
             </div>
           </div>
-          
+
           {/* Road Surface + Direction */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               {/* Road Surface */}
               <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-2">Road Surface:</label>
+                <label className="block font-medium text-gray-700 mb-2">
+                  Road Surface:
+                </label>
                 <select
                   className="border rounded p-2 w-full"
                   value={localFilters.roadSurfaceCondition}
-                  onChange={(e) => updateLocalFilter("roadSurfaceCondition", e.target.value)}
+                  onChange={(e) =>
+                    updateLocalFilter("roadSurfaceCondition", e.target.value)
+                  }
                 >
-                  {filterOptions.roadSurfaceCondition.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
+                  {filterOptions.roadSurfaceCondition.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
                   ))}
                 </select>
               </div>
             </div>
-            
+
             <div>
               {/* Direction */}
               <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-2">Direction:</label>
+                <label className="block font-medium text-gray-700 mb-2">
+                  Direction:
+                </label>
                 <select
                   className="border rounded p-2 w-full"
                   value={localFilters.direction}
-                  onChange={(e) => updateLocalFilter("direction", e.target.value)}
+                  onChange={(e) =>
+                    updateLocalFilter("direction", e.target.value)
+                  }
                 >
-                  {filterOptions.direction.map(option => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
+                  {filterOptions.direction.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
                   ))}
                 </select>
               </div>
             </div>
           </div>
-          
+
           {/* Participant Factors */}
           <h2 className="font-bold text-lg mb-3 mt-6">Participant Factors</h2>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <ToggleSwitch label="Aggressive Driving" name="aggressiveDriving" />
-              <ToggleSwitch label="Pedestrian Involved" name="pedestrianInvolved" />
+              <ToggleSwitch
+                label="Aggressive Driving"
+                name="aggressiveDriving"
+              />
+              <ToggleSwitch
+                label="Pedestrian Involved"
+                name="pedestrianInvolved"
+              />
               <ToggleSwitch label="Bicycle Involved" name="bicycleInvolved" />
-              <ToggleSwitch label="Motorcycle Involved" name="motorcycleInvolved" />
+              <ToggleSwitch
+                label="Motorcycle Involved"
+                name="motorcycleInvolved"
+              />
             </div>
-            
+
             <div>
               <ToggleSwitch label="Teen Driver Involved" name="teenInvolved" />
-              <ToggleSwitch label="Elderly Driver Involved" name="elderlyInvolved" />
-              <ToggleSwitch label="Impaired Driver (Alcohol/Drugs)" name="impaired" />
+              <ToggleSwitch
+                label="Elderly Driver Involved"
+                name="elderlyInvolved"
+              />
+              <ToggleSwitch
+                label="Impaired Driver (Alcohol/Drugs)"
+                name="impaired"
+              />
             </div>
           </div>
-          
+
           {/* Damage amount */}
           <h2 className="font-bold text-lg mb-3 mt-6">Damage</h2>
           <div className="mb-4">
