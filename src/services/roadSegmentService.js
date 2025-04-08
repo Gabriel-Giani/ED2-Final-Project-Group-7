@@ -273,7 +273,7 @@ export async function getMajorRoadLineSegments(
     let query = supabase
       .from("ultimate-table")
       .select(
-        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond, rdsurfcond, refdirect, fl_aggrsv, fl_ar_teen, fl_vru_ped, fl_vru_bik, flag_imp"
+        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond, rdsurfcond, refdirect, fl_aggrsv, fl_ar_teen, fl_vru_ped, fl_vru_bik, flag_imp, fl_vru_mot"
       );
 
     // Apply Date Filters
@@ -422,7 +422,13 @@ export async function getMajorRoadLineSegments(
     // Apply Impaired Driver Filter (Boolean Toggle)
     if (filters?.impaired === true) {
       console.log(`Applying filter: flag_imp EQ 'Y'`);
-      query = query.eq("flag_imp", "Y"); // Filter for 'Y' when toggle is true
+      query = query.eq("flag_imp", "Y");
+    }
+
+    // Apply Motorcycle Involved Filter (Boolean Toggle)
+    if (filters?.motorcycleInvolved === true) {
+      console.log(`Applying filter: fl_vru_mot EQ 'Y'`);
+      query = query.eq("fl_vru_mot", "Y"); // Filter for 'Y' when toggle is true
     }
 
     // Add other filters as needed (e.g., roadName, injuryLevel etc.)
