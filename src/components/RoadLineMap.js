@@ -13,6 +13,7 @@ import Feature from "ol/Feature";
 import LineString from "ol/geom/LineString";
 import { Style, Stroke } from "ol/style";
 import Overlay from "ol/Overlay";
+import { defaults as defaultControls } from "ol/control";
 
 // --- Map Constants (from consolidated-playground) ---
 const FLORIDA_EXTENT = [-87.8, 24.2, -79.7, 31.2];
@@ -143,6 +144,7 @@ export default function RoadLineMap({ onMapReady }) {
     if (!mapRef.current && mapContainerRef.current) {
       const map = new Map({
         target: mapContainerRef.current,
+        controls: defaultControls({ zoom: false }),
         layers: [new TileLayer({ source: new OSM(), zIndex: 0 })],
         view: new View({
           center: fromLonLat([-82.5, 28.1]),
