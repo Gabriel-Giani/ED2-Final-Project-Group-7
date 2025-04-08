@@ -273,8 +273,8 @@ export async function getMajorRoadLineSegments(
     let query = supabase
       .from("ultimate-table")
       .select(
-        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname"
-      ); // Select only needed fields
+        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond"
+      );
 
     // Apply Date Filters
     if (filters?.dateRange?.start) {
@@ -348,6 +348,31 @@ export async function getMajorRoadLineSegments(
           `Invalid dayOfWeek filter value: ${filters.dayOfWeek}. Skipping filter.`
         );
       }
+    }
+
+    // Apply Highest Injury Level Filter
+    if (filters?.injuryLevel) {
+      const injuryLevelInt = parseInt(filters.injuryLevel, 10);
+      // Check if it's a valid number (0-6 according to documentation, adjust if needed)
+      if (
+        !isNaN(injuryLevelInt) &&
+        injuryLevelInt >= 0 &&
+        injuryLevelInt <= 6
+      ) {
+        console.log(`Applying filter: highestinj EQ ${injuryLevelInt}`);
+        query = query.eq("highestinj", injuryLevelInt);
+      } else {
+        console.warn(
+          `Invalid injuryLevel filter value: ${filters.injuryLevel}. Skipping filter.`
+        );
+      }
+    }
+
+    // Apply Light Condition Filter
+    if (filters?.lightCondition) {
+      // Assuming lightcond is a text/varchar column matching the codes "01", "02", etc.
+      console.log(`Applying filter: lightcond EQ ${filters.lightCondition}`);
+      query = query.eq("lightcond", filters.lightCondition);
     }
 
     // Add other filters as needed (e.g., roadName, injuryLevel etc.)
