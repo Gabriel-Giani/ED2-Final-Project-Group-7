@@ -273,7 +273,7 @@ export async function getMajorRoadLineSegments(
     let query = supabase
       .from("ultimate-table")
       .select(
-        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond, rdsurfcond"
+        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond, rdsurfcond, refdirect"
       );
 
     // Apply Date Filters
@@ -386,6 +386,13 @@ export async function getMajorRoadLineSegments(
         `Applying filter: rdsurfcond EQ ${filters.roadSurfaceCondition}`
       );
       query = query.eq("rdsurfcond", filters.roadSurfaceCondition);
+    }
+
+    // Apply Direction Filter
+    const validDirections = ["N", "S", "E", "W"]; // Define valid direction characters
+    if (filters?.direction && validDirections.includes(filters.direction)) {
+      console.log(`Applying filter: refdirect EQ ${filters.direction}`);
+      query = query.eq("refdirect", filters.direction);
     }
 
     // Add other filters as needed (e.g., roadName, injuryLevel etc.)
