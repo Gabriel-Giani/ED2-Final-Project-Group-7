@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAccidentContext } from "@/context/accidentContext";
 import "ol/ol.css";
 import { Map, View } from "ol";
@@ -14,6 +14,10 @@ import LineString from "ol/geom/LineString";
 import { Style, Stroke } from "ol/style";
 import Overlay from "ol/Overlay";
 import { defaults as defaultControls } from "ol/control";
+import Point from "ol/geom/Point";
+import { Circle, Fill, Text } from "ol/style";
+import Cluster from "ol/source/Cluster";
+import AccidentDetailsPopup from "@/app/components/AccidentDetailsPopup";
 
 // --- Map Constants (from consolidated-playground) ---
 const FLORIDA_EXTENT = [-87.8, 24.2, -79.7, 31.2];
@@ -30,6 +34,44 @@ function getHeatColor(intensity) {
   if (intensity < 0.33) return `rgba(0, 220, 0, 0.8)`; // Green
   if (intensity < 0.66) return `rgba(255, 220, 0, 0.8)`; // Yellow
   return `rgba(220, 0, 0, 0.8)`; // Red
+}
+
+// Point style for individual accidents
+const accidentPointStyle = new Style({
+  image: new Circle({
+    radius: 5,
+    fill: new Fill({ color: "rgba(255, 0, 0, 0.6)" }),
+    stroke: new Stroke({ color: "#ff0000", width: 1 }),
+  }),
+});
+
+// Cluster styles for accident points
+function getClusterStyle(feature) {
+  const size = feature.get("features").length;
+  const radius = Math.min(Math.max(8, Math.sqrt(size) * 3), 20);
+
+  return new Style({
+    image: new Circle({
+      radius: radius,
+      fill: new Fill({
+        color: size > 1 ? "rgba(255, 0, 0, 0.7)" : "rgba(255, 0, 0, 0.5)",
+      }),
+      stroke: new Stroke({
+        color: "#fff",
+        width: 2,
+      }),
+    }),
+    text:
+      size > 1
+        ? new Text({
+            text: size.toString(),
+            fill: new Fill({
+              color: "#fff",
+            }),
+            font: "12px Arial",
+          })
+        : null,
+  });
 }
 
 // --- Tooltip Interaction (from consolidated-playground) ---
@@ -132,12 +174,138 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
   });
 }
 
+// Add after the existing addRoadInfoInteraction function
+function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
+  const overlayId = "accident-info-overlay";
+  // Remove any existing overlay first
+  const existingOverlay = map.getOverlayById(overlayId);
+  if (existingOverlay) {
+    map.removeOverlay(existingOverlay);
+  }
+
+  const tooltipElement =
+    document.getElementById("accident-tooltip") ||
+    document.createElement("div");
+  tooltipElement.id = "accident-tooltip";
+  tooltipElement.className = "ol-tooltip hidden";
+  tooltipElement.style.position = "absolute";
+  tooltipElement.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+  tooltipElement.style.color = "white";
+  tooltipElement.style.padding = "8px";
+  tooltipElement.style.borderRadius = "4px";
+  tooltipElement.style.pointerEvents = "none";
+  tooltipElement.style.zIndex = "1000";
+  tooltipElement.style.fontSize = "12px";
+  tooltipElement.style.maxWidth = "300px";
+
+  // Append to body if it's not already there
+  if (!document.getElementById(tooltipElement.id)) {
+    document.body.appendChild(tooltipElement);
+  }
+
+  const tooltip = new Overlay({
+    element: tooltipElement,
+    id: overlayId,
+    offset: [0, -15],
+    positioning: "bottom-center",
+  });
+  map.addOverlay(tooltip);
+
+  map.on("pointermove", function (evt) {
+    if (evt.dragging) {
+      tooltipElement.classList.add("hidden");
+      return;
+    }
+
+    const pixel = map.getEventPixel(evt.originalEvent);
+    let featureFound = null;
+
+    map.forEachFeatureAtPixel(
+      pixel,
+      function (feature, layer) {
+        if (layer && layer.get("layerId") === layerId) {
+          // For clusters, get the individual features
+          const features = feature.get("features");
+          if (features && features.length === 1) {
+            // Only show tooltip for individual points, not clusters
+            featureFound = features[0];
+            return true;
+          }
+        }
+        return false;
+      },
+      {
+        layerFilter: (layer) => layer.get("layerId") === layerId,
+      }
+    );
+
+    const targetElement = map.getTargetElement();
+    targetElement.style.cursor = featureFound ? "pointer" : "";
+
+    if (featureFound) {
+      const properties = featureFound.getProperties();
+
+      // Format date and time
+      const date = properties.crashdate
+        ? new Date(properties.crashdate).toLocaleDateString()
+        : "Unknown";
+      const time = properties.crashtime
+        ? `${properties.crashtime.slice(0, 2)}:${properties.crashtime.slice(2)}`
+        : "Unknown";
+
+      tooltipElement.innerHTML = `
+        <div>
+          <strong>${properties.onroadname || "Unknown Road"}</strong>
+          ${
+            properties.inroadname
+              ? `<div>at ${properties.inroadname}</div>`
+              : ""
+          }
+          <div>Date: ${date}</div>
+          <div>Time: ${time}</div>
+          <div>Injuries: ${properties.cntofinj || 0}</div>
+          <div>Fatalities: ${properties.cntoffatl || 0}</div>
+          ${
+            properties.weathcond
+              ? `<div>Weather: ${properties.weathcond}</div>`
+              : ""
+          }
+          ${
+            properties.lightcond
+              ? `<div>Lighting: ${properties.lightcond}</div>`
+              : ""
+          }
+          ${
+            properties.rdsurfcond
+              ? `<div>Road Surface: ${properties.rdsurfcond}</div>`
+              : ""
+          }
+        </div>
+      `;
+      tooltip.setPosition(evt.coordinate);
+      tooltipElement.classList.remove("hidden");
+    } else {
+      tooltipElement.classList.add("hidden");
+    }
+  });
+
+  // Hide tooltip on map move start
+  map.on("movestart", () => {
+    tooltipElement.classList.add("hidden");
+  });
+}
+
 // --- The Map Component ---
-export default function RoadLineMap({ onMapReady }) {
+export default function RoadLineMap({ onMapReady, viewMode }) {
   const mapRef = useRef(null);
   const mapContainerRef = useRef(null);
-  const { roadLineSegments } = useAccidentContext(); // Get data from context
-  const vectorLayerRef = useRef(null); // Ref to hold the vector layer
+  const { roadLineSegments, accidents } = useAccidentContext();
+  const vectorLayerRef = useRef(null);
+  const pointsLayerRef = useRef(null);
+  const clusterSourceRef = useRef(null);
+
+  // Add state for selected accident
+  const [selectedAccident, setSelectedAccident] = useState(null);
 
   // Initialize map
   useEffect(() => {
@@ -157,48 +325,113 @@ export default function RoadLineMap({ onMapReady }) {
       });
       mapRef.current = map;
 
-      // Create the vector layer initially (empty)
+      // Create vector layers
       vectorLayerRef.current = new VectorLayer({
         source: new VectorSource(),
         zIndex: 1,
-        layerId: "roadLayer", // Add an identifier for the hover interaction
+        layerId: "roadLayer",
       });
-      map.addLayer(vectorLayerRef.current);
 
-      // Add hover interaction
+      // Create points layer with clustering
+      const pointsSource = new VectorSource();
+      clusterSourceRef.current = new Cluster({
+        distance: 40,
+        source: pointsSource,
+      });
+
+      pointsLayerRef.current = new VectorLayer({
+        source: clusterSourceRef.current,
+        style: getClusterStyle,
+        zIndex: 2,
+        layerId: "pointsLayer",
+      });
+
+      // Add layers to map
+      map.addLayer(vectorLayerRef.current);
+      map.addLayer(pointsLayerRef.current);
+
+      // Add hover interaction for road segments only
       addRoadInfoInteraction(map, "roadLayer");
 
+      // Add click handler for accidents
+      map.on("click", function (evt) {
+        const feature = map.forEachFeatureAtPixel(
+          evt.pixel,
+          function (feature) {
+            return feature;
+          },
+          {
+            layerFilter: function (layer) {
+              return layer === pointsLayerRef.current;
+            },
+            hitTolerance: 10,
+          }
+        );
+
+        if (feature) {
+          const features = feature.get("features");
+          if (features && features.length === 1) {
+            // Single accident - show details
+            const singleFeature = features[0];
+            const props = singleFeature.getProperties();
+            setSelectedAccident(props.properties);
+          } else if (features && features.length > 1) {
+            // Cluster - zoom in
+            const extent = feature.getGeometry().getExtent();
+            mapRef.current.getView().fit(extent, {
+              padding: [50, 50, 50, 50],
+              duration: 500,
+              maxZoom: 15,
+            });
+            setSelectedAccident(null);
+          }
+        } else {
+          setSelectedAccident(null);
+        }
+      });
+
       if (onMapReady) {
-        onMapReady(map); // Pass map instance to parent if needed
+        onMapReady(map);
       }
     }
 
     // Cleanup
     return () => {
-      // Clean up tooltip element if it exists
-      const tooltipElement = document.getElementById("road-tooltip");
-      if (tooltipElement && tooltipElement.parentNode) {
-        tooltipElement.parentNode.removeChild(tooltipElement);
+      const roadTooltip = document.getElementById("road-tooltip");
+      if (roadTooltip && roadTooltip.parentNode) {
+        roadTooltip.parentNode.removeChild(roadTooltip);
       }
+
       if (mapRef.current) {
         mapRef.current.setTarget(undefined);
         mapRef.current = null;
       }
     };
-  }, [onMapReady]); // Dependency array includes onMapReady
+  }, [onMapReady]);
 
-  // Update map features when roadLineSegments data changes
+  // Update map features based on view mode
   useEffect(() => {
-    if (!mapRef.current || !vectorLayerRef.current) return;
+    if (!mapRef.current || !vectorLayerRef.current || !pointsLayerRef.current)
+      return;
 
-    console.log(
-      `RoadLineMap: Updating features with ${
-        roadLineSegments?.length || 0
-      } segments.`
-    );
+    // Toggle layer visibility based on view mode
+    vectorLayerRef.current.setVisible(viewMode === "hotspots");
+    pointsLayerRef.current.setVisible(viewMode === "points");
+
+    // Update appropriate layer based on view mode
+    if (viewMode === "hotspots") {
+      updateHotspotLayer();
+    } else {
+      updatePointsLayer();
+    }
+  }, [viewMode, roadLineSegments, accidents]);
+
+  // Function to update hotspot layer
+  const updateHotspotLayer = () => {
+    if (!vectorLayerRef.current) return;
 
     const source = vectorLayerRef.current.getSource();
-    source.clear(); // Clear existing features
+    source.clear();
 
     if (roadLineSegments && roadLineSegments.length > 0) {
       const features = roadLineSegments
@@ -224,7 +457,7 @@ export default function RoadLineMap({ onMapReady }) {
               new Style({
                 stroke: new Stroke({
                   color: getHeatColor(segment.intensity),
-                  width: 3 + segment.intensity * 6, // Adjust width based on intensity
+                  width: 3 + segment.intensity * 6,
                 }),
               })
             );
@@ -235,10 +468,47 @@ export default function RoadLineMap({ onMapReady }) {
         .filter(Boolean);
 
       source.addFeatures(features);
-    } else {
-      console.log("RoadLineMap: No road segments to display.");
     }
-  }, [roadLineSegments]); // Re-run when road segments data changes
+  };
 
-  return <div ref={mapContainerRef} className="w-full h-full" />;
+  // Function to update points layer
+  const updatePointsLayer = () => {
+    if (!clusterSourceRef.current) return;
+
+    const source = clusterSourceRef.current.getSource();
+    source.clear();
+
+    if (accidents && accidents.length > 0) {
+      const features = accidents
+        .map((accident) => {
+          if (accident.longitude && accident.latitude) {
+            return new Feature({
+              geometry: new Point(
+                fromLonLat([
+                  parseFloat(accident.longitude),
+                  parseFloat(accident.latitude),
+                ])
+              ),
+              properties: accident,
+            });
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      source.addFeatures(features);
+    }
+  };
+
+  return (
+    <div className="relative w-full h-full">
+      <div ref={mapContainerRef} className="w-full h-full" />
+      {selectedAccident && (
+        <AccidentDetailsPopup
+          accident={selectedAccident}
+          onClose={() => setSelectedAccident(null)}
+        />
+      )}
+    </div>
+  );
 }
