@@ -273,7 +273,7 @@ export async function getMajorRoadLineSegments(
     let query = supabase
       .from("ultimate-table")
       .select(
-        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond, rdsurfcond, refdirect, fl_aggrsv, fl_ar_teen, fl_vru_ped, fl_vru_bik, flag_imp, fl_vru_mot"
+        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond, rdsurfcond, refdirect, fl_aggrsv, fl_ar_teen, fl_vru_ped, fl_vru_bik, flag_imp, fl_vru_mot, totcrshdmg"
       );
 
     // Apply Date Filters
@@ -428,7 +428,31 @@ export async function getMajorRoadLineSegments(
     // Apply Motorcycle Involved Filter (Boolean Toggle)
     if (filters?.motorcycleInvolved === true) {
       console.log(`Applying filter: fl_vru_mot EQ 'Y'`);
-      query = query.eq("fl_vru_mot", "Y"); // Filter for 'Y' when toggle is true
+      query = query.eq("fl_vru_mot", "Y");
+    }
+
+    // Apply Total Crash Damage Filter (Min/Max)
+    if (filters?.damageMin !== null && filters?.damageMin !== "") {
+      const damageMinNum = parseFloat(filters.damageMin); // Use parseFloat for potential decimals
+      if (!isNaN(damageMinNum) && damageMinNum >= 0) {
+        console.log(`Applying filter: totcrshdmg GTE ${damageMinNum}`);
+        query = query.gte("totcrshdmg", damageMinNum);
+      } else {
+        console.warn(
+          `Invalid damageMin filter value: ${filters.damageMin}. Skipping min damage filter.`
+        );
+      }
+    }
+    if (filters?.damageMax !== null && filters?.damageMax !== "") {
+      const damageMaxNum = parseFloat(filters.damageMax);
+      if (!isNaN(damageMaxNum) && damageMaxNum >= 0) {
+        console.log(`Applying filter: totcrshdmg LTE ${damageMaxNum}`);
+        query = query.lte("totcrshdmg", damageMaxNum);
+      } else {
+        console.warn(
+          `Invalid damageMax filter value: ${filters.damageMax}. Skipping max damage filter.`
+        );
+      }
     }
 
     // Add other filters as needed (e.g., roadName, injuryLevel etc.)
