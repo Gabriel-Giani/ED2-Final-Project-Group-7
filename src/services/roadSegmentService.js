@@ -273,7 +273,7 @@ export async function getMajorRoadLineSegments(
     let query = supabase
       .from("ultimate-table")
       .select(
-        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond, rdsurfcond, refdirect"
+        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond, rdsurfcond, refdirect, fl_aggrsv"
       );
 
     // Apply Date Filters
@@ -389,10 +389,16 @@ export async function getMajorRoadLineSegments(
     }
 
     // Apply Direction Filter
-    const validDirections = ["N", "S", "E", "W"]; // Define valid direction characters
+    const validDirections = ["N", "S", "E", "W"];
     if (filters?.direction && validDirections.includes(filters.direction)) {
       console.log(`Applying filter: refdirect EQ ${filters.direction}`);
       query = query.eq("refdirect", filters.direction);
+    }
+
+    // Apply Aggressive Driving Filter (Boolean Toggle)
+    if (filters?.aggressiveDriving === true) {
+      console.log(`Applying filter: fl_aggrsv EQ 'Y'`);
+      query = query.eq("fl_aggrsv", "Y"); // Filter for 'Y' when toggle is true
     }
 
     // Add other filters as needed (e.g., roadName, injuryLevel etc.)
