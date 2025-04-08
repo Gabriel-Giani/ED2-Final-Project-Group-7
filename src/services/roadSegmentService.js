@@ -273,7 +273,7 @@ export async function getMajorRoadLineSegments(
     let query = supabase
       .from("ultimate-table")
       .select(
-        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond"
+        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond, rdsurfcond"
       );
 
     // Apply Date Filters
@@ -376,9 +376,16 @@ export async function getMajorRoadLineSegments(
 
     // Apply Weather Condition Filter
     if (filters?.weatherCondition) {
-      // Assuming weathcond is a text/varchar column matching the codes
       console.log(`Applying filter: weathcond EQ ${filters.weatherCondition}`);
       query = query.eq("weathcond", filters.weatherCondition);
+    }
+
+    // Apply Road Surface Condition Filter
+    if (filters?.roadSurfaceCondition) {
+      console.log(
+        `Applying filter: rdsurfcond EQ ${filters.roadSurfaceCondition}`
+      );
+      query = query.eq("rdsurfcond", filters.roadSurfaceCondition);
     }
 
     // Add other filters as needed (e.g., roadName, injuryLevel etc.)
