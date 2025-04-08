@@ -273,7 +273,7 @@ export async function getMajorRoadLineSegments(
     let query = supabase
       .from("ultimate-table")
       .select(
-        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond, rdsurfcond, refdirect, fl_aggrsv, fl_ar_teen"
+        "latitude, longitude, onroadname, crashdate, crashtime, dotcounty, townname, highestinj, lightcond, weathcond, rdsurfcond, refdirect, fl_aggrsv, fl_ar_teen, fl_vru_ped"
       );
 
     // Apply Date Filters
@@ -404,7 +404,13 @@ export async function getMajorRoadLineSegments(
     // Apply Teen Driver Involved Filter (Boolean Toggle)
     if (filters?.teenInvolved === true) {
       console.log(`Applying filter: fl_ar_teen EQ 'Y'`);
-      query = query.eq("fl_ar_teen", "Y"); // Filter for 'Y' when toggle is true
+      query = query.eq("fl_ar_teen", "Y");
+    }
+
+    // Apply Pedestrian Involved Filter (Boolean Toggle)
+    if (filters?.pedestrianInvolved === true) {
+      console.log(`Applying filter: fl_vru_ped EQ 'Y'`);
+      query = query.eq("fl_vru_ped", "Y"); // Filter for 'Y' when toggle is true
     }
 
     // Add other filters as needed (e.g., roadName, injuryLevel etc.)
