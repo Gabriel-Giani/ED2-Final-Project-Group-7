@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import RoadLineMap from "../components/RoadLineMap";
 import TopRoadSegments from "../components/TopRoadSegments";
 import FiltersButton from "./components/FiltersButton";
@@ -9,6 +9,10 @@ import { motion } from "framer-motion";
 import { fromLonLat, toLonLat, transformExtent } from "ol/proj";
 import { getExtent } from "ol/extent";
 import { useAccidentContext } from "@/context/accidentContext";
+import VectorLayer from "ol/layer/Vector";
+import VectorSource from "ol/source/Vector";
+import { Circle, Style, Fill, Stroke, Text } from "ol/style";
+import GeoJSON from "ol/format/GeoJSON";
 
 // Helper to calculate bounding box from LonLat coordinates
 function calculateLonLatBoundingBox(coordinates) {
@@ -27,6 +31,51 @@ function calculateLonLatBoundingBox(coordinates) {
   return [minLon, minLat, maxLon, maxLat];
 }
 
+// County style
+const countyStyle = new Style({
+  stroke: new Stroke({
+    color: "rgba(0, 0, 0, 0.6)",
+    width: 1.5,
+  }),
+  fill: new Fill({
+    color: "rgba(255, 255, 255, 0.1)",
+  }),
+});
+
+// Selected county style
+const selectedCountyStyle = new Style({
+  stroke: new Stroke({
+    color: "rgba(0, 0, 255, 0.8)",
+    width: 2.5,
+  }),
+  fill: new Fill({
+    color: "rgba(0, 0, 255, 0.1)",
+  }),
+});
+
+// City boundary style
+const cityBoundaryStyle = new Style({
+  stroke: new Stroke({
+    color: "rgba(41, 122, 37, 0.88)",
+    width: 2,
+  }),
+  fill: new Fill({
+    color: "rgba(0, 128, 0, 0.1)",
+  }),
+  text: new Text({
+    font: '12px Calibri,sans-serif',
+    fill: new Fill({
+      color: '#000',
+    }),
+    stroke: new Stroke({
+      color: '#fff',
+      width: 3,
+    }),
+    offsetY: -15,
+    overflow: true
+  }),
+});
+
 export default function HomePage() {
   // Map reference for RoadLineMap
   const mapRef = useRef(null);
@@ -35,12 +84,214 @@ export default function HomePage() {
   const isHoldingRef = useRef(false);
 
   // Get state from context
-  const { loading, loadingMessage } = useAccidentContext();
+  const { loading, loadingMessage, filters } = useAccidentContext();
+  const { filterRegion, regionName } = filters || {};
+  
+  // Add refs for vector sources
+  const countiesSource = useRef(new VectorSource());
+  const cityBoundariesSource = useRef(new VectorSource());
+  
+  // Add refs for vector layers
+  const countiesLayer = useRef(
+    new VectorLayer({
+      source: countiesSource.current,
+      style: function(feature) {
+        const countyName = feature.get('NAME');
+        if (regionName && filterRegion === 'county' && countyName === regionName) {
+          return selectedCountyStyle;
+        }
+        return countyStyle;
+      },
+      zIndex: 0.5,
+    })
+  );
+
+  const cityBoundariesLayer = useRef(
+    new VectorLayer({
+      source: cityBoundariesSource.current,
+      style: function(feature) {
+        return cityBoundaryStyle;
+      },
+      zIndex: 0.8, // Above counties but below road segments
+    })
+  );
 
   // Called by RoadLineMap when the map instance is ready
   const handleMapReady = (mapInstance) => {
     mapRef.current = mapInstance;
+    
+    // Add county and city layers to the map
+    mapRef.current.addLayer(countiesLayer.current);
+    mapRef.current.addLayer(cityBoundariesLayer.current);
+    
+    // Load geographic data
+    try {
+      loadCounties();
+      loadCityBoundaries();
+    } catch (error) {
+      console.error("Error loading geographic data:", error);
+    }
   };
+
+  // Load Florida counties GeoJSON data
+  const loadCounties = useCallback(async () => {
+    try {
+      const response = await fetch('/floridaCountyOutline.geojson');
+      const geojsonData = await response.json();
+      
+      // Filter features based on selected county or filter settings
+      let featuresToShow;
+      
+      if (filterRegion === 'county' && regionName) {
+        // Use the county from filters if set
+        featuresToShow = geojsonData.features.filter(
+          feature => feature.properties.NAME === regionName
+        );
+        console.log(`Filtering to show only county from filters: ${regionName}`);
+      } else if (filterRegion === 'state') {
+        // Show all counties for state-level view
+        featuresToShow = geojsonData.features;
+        console.log('Showing all counties for state-level view');
+      } else if (filterRegion === 'city' && regionName) {
+        // For city view, we might want to show the containing county
+        // This would require knowing which county contains each city
+        // For now, don't show county boundaries for city-specific views
+        featuresToShow = [];
+        console.log('City view active, not showing county boundaries');
+      } else {
+        // Default: show all counties if no specific filter is set
+        featuresToShow = geojsonData.features;
+        console.log('No specific filter set, showing all counties');
+      }
+      
+      // Create a filtered GeoJSON
+      const filteredGeoJSON = {
+        type: "FeatureCollection",
+        features: featuresToShow
+      };
+      
+      // Parse GeoJSON using OpenLayers format
+      const format = new GeoJSON();
+      const features = format.readFeatures(filteredGeoJSON, {
+        featureProjection: 'EPSG:3857', // Web Mercator projection used by OpenLayers
+        dataProjection: 'EPSG:4326' // Assuming the GeoJSON is in WGS84 coordinates
+      });
+      
+      // Clear existing features and add filtered ones
+      countiesSource.current.clear();
+      countiesSource.current.addFeatures(features);
+      
+      console.log(`Added ${features.length} county features to map`);
+      
+      // Fit view to selected county if there's only one
+      if (features.length === 1 && mapRef.current) {
+        const extent = countiesSource.current.getExtent();
+        mapRef.current.getView().fit(extent, {
+          padding: [50, 50, 50, 50],
+          duration: 500
+        });
+      }
+      
+      // Force map refresh if it exists
+      if (mapRef.current) {
+        mapRef.current.render();
+      }
+    } catch (error) {
+      console.error('Error loading Florida counties GeoJSON:', error);
+    }
+  }, [filterRegion, regionName]);
+
+  // Load city boundaries GeoJSON data
+  const loadCityBoundaries = useCallback(async () => {
+    try {
+      console.log("Loading city boundaries with filterRegion:", filterRegion, "regionName:", regionName);
+      
+      // Load the city boundaries GeoJSON file
+      const response = await fetch('/par_citylm_2021.geojson');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch city boundaries: ${response.status} ${response.statusText}`);
+      }
+      
+      const geojsonData = await response.json();
+      console.log("City GeoJSON loaded, features count:", geojsonData.features?.length || 0);
+      
+      // Parse GeoJSON using OpenLayers format
+      const format = new GeoJSON();
+      const features = format.readFeatures(geojsonData, {
+        featureProjection: 'EPSG:3857', // Web Mercator projection used by OpenLayers
+        dataProjection: 'EPSG:4326' // Assuming the GeoJSON is in WGS84 coordinates
+      });
+      
+      console.log("Parsed features count:", features.length);
+      
+      // Filter features based on selection criteria
+      let filteredFeatures = [];
+      
+      if (filterRegion === 'city' && regionName) {
+        // If a specific city is selected in filters, only show that city
+        console.log("Filtering for specific city:", regionName);
+        filteredFeatures = features.filter(feature => {
+          const name = feature.get('NAME') || '';
+          const matches = name.toLowerCase() === regionName.toLowerCase();
+          return matches;
+        });
+        console.log(`Found ${filteredFeatures.length} features matching city name: ${regionName}`);
+      } else if (filterRegion === 'county' && regionName) {
+        // If a county is selected, show all cities in that county
+        console.log("Filtering for cities in county:", regionName);
+        filteredFeatures = features.filter(feature => {
+          const county = feature.get('COUNTY') || '';
+          const matches = county.toLowerCase() === regionName.toLowerCase();
+          return matches;
+        });
+        console.log(`Found ${filteredFeatures.length} features in county: ${regionName}`);
+      } else if (filterRegion === 'state') {
+        // For state-level view, don't show any cities to avoid clutter
+        console.log("State-level view, not showing city boundaries");
+      } else {
+        console.log("No specific city or county filter active");
+      }
+      
+      // Clear existing features
+      cityBoundariesSource.current.clear();
+      
+      // Add filtered features if we have any
+      if (filteredFeatures.length > 0) {
+        cityBoundariesSource.current.addFeatures(filteredFeatures);
+        console.log(`Added ${filteredFeatures.length} city boundary features to map`);
+        
+        // If a specific city is selected, fit the view to that city
+        if (filterRegion === 'city' && regionName && mapRef.current) {
+          const extent = cityBoundariesSource.current.getExtent();
+          mapRef.current.getView().fit(extent, {
+            padding: [50, 50, 50, 50],
+            duration: 500
+          });
+        }
+      } else {
+        console.log("No city boundaries to display based on current filters");
+      }
+      
+      // Force map refresh
+      if (mapRef.current) {
+        mapRef.current.render();
+      }
+    } catch (error) {
+      console.error('Error loading or processing city boundaries:', error);
+    }
+  }, [filterRegion, regionName]);
+
+  // Update geographic data when filters change
+  useEffect(() => {
+    if (mapRef.current) {
+      try {
+        loadCounties();
+        loadCityBoundaries();
+      } catch (error) {
+        console.error("Error updating geographic data:", error);
+      }
+    }
+  }, [loadCounties, loadCityBoundaries, filters]);
 
   // --- Zoom Logic ---
   const getCurrentView = () => {
