@@ -2,25 +2,25 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAccidentContext } from "@/context/accidentContext";
+import {
+  useAccidentContext,
+  initialState as accidentInitialState,
+} from "@/context/accidentContext";
 import FilterTabs from "./FilterTabs";
 
 export default function FiltersButton() {
-  const {
-    filters,
-    updateFilters,
-    resetFilters,
-    applyFilters,
-    loading: isLoading,
-  } = useAccidentContext();
-  
+  const { filters, setFilters, loading: isLoading } = useAccidentContext();
+
   const [showFilters, setShowFilters] = useState(false);
   const [localFilters, setLocalFilters] = useState({ ...filters });
   const filtersRef = useRef(null);
-  
-  // Sync local state with context filters when menu opens
+
+  // Sync local state with context filters when menu opens or context changes
   useEffect(() => {
     if (showFilters) {
+      setLocalFilters({ ...filters });
+    } else {
+      // Also sync if the menu is closed and context filters change externally
       setLocalFilters({ ...filters });
     }
   }, [showFilters, filters]);
@@ -28,14 +28,18 @@ export default function FiltersButton() {
   // Handle clicks outside of filters menu
   useEffect(() => {
     function handleClickOutside(event) {
-      if (showFilters && filtersRef.current && !filtersRef.current.contains(event.target)) {
+      if (
+        showFilters &&
+        filtersRef.current &&
+        !filtersRef.current.contains(event.target)
+      ) {
         setShowFilters(false);
       }
     }
-    
-    document.addEventListener('mousedown', handleClickOutside);
+
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showFilters]);
 
@@ -48,15 +52,14 @@ export default function FiltersButton() {
   // Handle the Apply button click
   const handleApply = (e) => {
     e.stopPropagation();
-    updateFilters(localFilters);
-    applyFilters();
+    setFilters(localFilters);
     setShowFilters(false);
   };
 
   // Handle the Reset button click
   const handleReset = (e) => {
     e.stopPropagation();
-    resetFilters();
+    setFilters(accidentInitialState.filters);
     setShowFilters(false);
   };
 
@@ -95,9 +98,9 @@ export default function FiltersButton() {
             />
 
             {/* Filter content */}
-            <FilterTabs 
-              localFilters={localFilters} 
-              setLocalFilters={setLocalFilters} 
+            <FilterTabs
+              localFilters={localFilters}
+              setLocalFilters={setLocalFilters}
             />
 
             {/* Action Buttons */}

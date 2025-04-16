@@ -13,7 +13,7 @@ import { accidentDataService } from "@/services/accidentDataService";
 import { roadSegmentService } from "@/services/roadSegmentService";
 
 // Initial state
-const initialState = {
+export const initialState = {
   // Data
   accidents: [], // Keep this for individual points view
   roadLineSegments: [], // Keep for road lines
