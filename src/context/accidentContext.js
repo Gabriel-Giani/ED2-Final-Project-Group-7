@@ -139,10 +139,44 @@ export function AccidentProvider({ children }) {
     }
   }, [state.filters]);
 
-  // Load data when filters change
+  // Load main accident/segment data when filters change
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Fetch initial filter options (counties, cities) on mount
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        console.log("Fetching initial filter options (counties, cities)...");
+        // Fetch counties using getRegionOptions
+        const counties = await accidentDataService.getRegionOptions("county");
+        if (counties && counties.length > 0) {
+          dispatch({ type: actionTypes.SET_COUNTIES, payload: counties });
+          console.log(`Fetched ${counties.length} unique counties.`);
+        } else {
+          console.warn("No counties returned from service.");
+          dispatch({ type: actionTypes.SET_COUNTIES, payload: [] });
+        }
+
+        // Fetch cities using getRegionOptions
+        const cities = await accidentDataService.getRegionOptions("city");
+        if (cities && cities.length > 0) {
+          dispatch({ type: actionTypes.SET_CITIES, payload: cities });
+          console.log(`Fetched ${cities.length} unique cities.`);
+        } else {
+          console.warn("No cities returned from service.");
+          dispatch({ type: actionTypes.SET_CITIES, payload: [] });
+        }
+      } catch (error) {
+        console.error("Error fetching filter options:", error);
+        dispatch({ type: actionTypes.SET_COUNTIES, payload: [] });
+        dispatch({ type: actionTypes.SET_CITIES, payload: [] });
+      }
+    };
+
+    fetchFilterOptions();
+  }, []);
 
   const value = {
     ...state,
