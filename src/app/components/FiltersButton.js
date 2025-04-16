@@ -85,7 +85,7 @@ export default function FiltersButton() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-full left-0 mt-2 bg-gray-100 text-gray-800 rounded-xl shadow-lg p-4 z-50"
+            className="absolute top-[47px] left-0 mt-2 bg-gray-100 text-gray-800 rounded-xl shadow-lg p-4 z-[9999]"
             style={{ width: "500px", maxHeight: "85vh", overflowY: "auto" }}
             onClick={(e) => e.stopPropagation()}
           >

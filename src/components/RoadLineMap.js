@@ -36,6 +36,55 @@ function getHeatColor(intensity) {
   return `rgba(220, 0, 0, 0.8)`; // Red
 }
 
+// Convert intensity (0-1) to rating (0-5)
+function getRiskRating(intensity) {
+  return Math.round(intensity * 10) / 2; // Convert to 0-5 scale with 0.5 increments
+}
+
+function getRiskRatingHTML(rating) {
+  const totalSymbols = 5;
+  const fullSymbols = Math.floor(rating);
+  const hasHalfSymbol = rating % 1 !== 0;
+  const emptySymbols = totalSymbols - fullSymbols - (hasHalfSymbol ? 1 : 0);
+
+  const fullSymbolSVG = `<svg class="inline w-4 h-4" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="9" stroke="#FF0000" stroke-width="3" fill="none" />
+    <line x1="5" y1="19" x2="19" y2="5" stroke="#FF0000" stroke-width="3" />
+  </svg>`;
+
+  const emptySymbolSVG = `<svg class="inline w-4 h-4" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="9" stroke="#9CA3AF" stroke-width="3" fill="none" />
+    <line x1="5" y1="19" x2="19" y2="5" stroke="#9CA3AF" stroke-width="3" />
+  </svg>`;
+
+  const halfSymbolSVG = `<svg class="inline w-4 h-4" viewBox="0 0 24 24" fill="none">
+    <defs>
+      <linearGradient id="half-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="50%" stop-color="#FF0000" />
+        <stop offset="50%" stop-color="#9CA3AF" />
+      </linearGradient>
+    </defs>
+    <circle cx="12" cy="12" r="9" stroke="url(#half-gradient)" stroke-width="3" fill="none" />
+    <line x1="5" y1="19" x2="19" y2="5" stroke="url(#half-gradient)" stroke-width="3" />
+  </svg>`;
+
+  return `
+    <div class="flex flex-col gap-2">
+      <div class="text-xs text-gray-300">
+        More symbols indicate higher risk (scale: 0-5)
+      </div>
+      <div class="flex gap-1">
+        ${fullSymbolSVG.repeat(fullSymbols)}
+        ${hasHalfSymbol ? halfSymbolSVG : ''}
+        ${emptySymbolSVG.repeat(emptySymbols)}
+      </div>
+      <div class="text-xs text-gray-300">
+        Risk Rating: ${rating.toFixed(1)} out of 5
+      </div>
+    </div>
+  `;
+}
+
 // Point style for individual accidents
 const accidentPointStyle = new Style({
   image: new Circle({
@@ -82,11 +131,10 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
   if (existingOverlay) {
     map.removeOverlay(existingOverlay);
   }
-  const tooltipElement =
-    document.getElementById("road-tooltip") || document.createElement("div");
-  tooltipElement.id = "road-tooltip"; // Ensure it has an ID
-  tooltipElement.className = "ol-tooltip hidden"; // Start hidden
-  // Apply necessary styles if not done via CSS
+
+  const tooltipElement = document.getElementById("road-tooltip") || document.createElement("div");
+  tooltipElement.id = "road-tooltip";
+  tooltipElement.className = "ol-tooltip hidden";
   tooltipElement.style.position = "absolute";
   tooltipElement.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
   tooltipElement.style.color = "white";
@@ -97,7 +145,6 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
   tooltipElement.style.fontSize = "12px";
   tooltipElement.style.maxWidth = "300px";
 
-  // Append to body if it's not already there
   if (!document.getElementById(tooltipElement.id)) {
     document.body.appendChild(tooltipElement);
   }
@@ -115,20 +162,21 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
       tooltipElement.classList.add("hidden");
       return;
     }
+
     const pixel = map.getEventPixel(evt.originalEvent);
     let featureFound = null;
+
     map.forEachFeatureAtPixel(
       pixel,
       function (feature, layer) {
-        // Check if the feature is on the target layer
         if (layer && layer.get("layerId") === layerId) {
           featureFound = feature;
-          return true; // Stop iteration
+          return true;
         }
         return false;
       },
       {
-        layerFilter: (layer) => layer.get("layerId") === layerId, // Filter layers checked
+        layerFilter: (layer) => layer.get("layerId") === layerId,
       }
     );
 
@@ -145,22 +193,19 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
         roadType: featureFound.get("roadType") || "",
       };
 
+      const riskRating = getRiskRating(properties.intensity);
+
       tooltipElement.innerHTML = `
-              <div>
-                <strong>${properties.name}</strong>
-                ${
-                  properties.roadType
-                    ? `<div>Type: ${properties.roadType}</div>`
-                    : ""
-                }
-                <div>Accidents: ${properties.count}</div>
-                <div>Length: ${(properties.length / 1000).toFixed(2)} km</div>
-                <div>Accidents/km: ${properties.accidentsPerKm.toFixed(2)}</div>
-                <div>Relative danger: ${Math.round(
-                  properties.intensity * 100
-                )}%</div>
-              </div>
-            `;
+        <div>
+          <strong>${properties.name}</strong>
+          ${properties.roadType ? `<div>Type: ${properties.roadType}</div>` : ""}
+          <div>Accidents: ${properties.count}</div>
+          <div>Length: ${(properties.length / 1000).toFixed(2)} km</div>
+          <div>Accidents/km: ${properties.accidentsPerKm.toFixed(2)}</div>
+          <div>Risk Rating: ${riskRating.toFixed(1)} out of 5</div>
+        </div>
+      `;
+
       tooltip.setPosition(evt.coordinate);
       tooltipElement.classList.remove("hidden");
     } else {
@@ -168,7 +213,6 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
     }
   });
 
-  // Hide tooltip on map move start
   map.on("movestart", () => {
     tooltipElement.classList.add("hidden");
   });
