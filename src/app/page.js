@@ -83,11 +83,14 @@ export default function HomePage() {
   const holdTimeoutRef = useRef(null);
   const isHoldingRef = useRef(false);
 
-  // Add view mode state
-  const [viewMode, setViewMode] = useState("hotspots");
-
-  // Get state from context
-  const { loading, loadingMessage, filters } = useAccidentContext();
+  // Get state from context, including showPoints and setShowPoints
+  const {
+    loading,
+    loadingMessage,
+    filters,
+    showPoints, // Get showPoints from context
+    setShowPoints, // Get setShowPoints from context
+  } = useAccidentContext();
   const { filterRegion, regionName } = filters || {};
 
   // Add refs for vector sources
@@ -417,14 +420,13 @@ export default function HomePage() {
             type="button"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() =>
-              setViewMode((prev) =>
-                prev === "hotspots" ? "points" : "hotspots"
-              )
+            onClick={
+              () => setShowPoints(!showPoints) // Use setShowPoints from context
             }
             className="bg-gray-700 text-white px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition-colors"
           >
-            {viewMode === "hotspots" ? "Show Points" : "Show Hotspots"}
+            {/* Update button text based on showPoints from context */}
+            {showPoints ? "Show Hotspots" : "Show Points"}
           </motion.button>
           <AboutButton />
         </div>
@@ -432,9 +434,11 @@ export default function HomePage() {
 
       {/* MAIN CONTENT: MAP + UI ELEMENTS */}
       <div className="relative flex-1">
-        {/* MAP CONTAINER */}
+        {/* MAP CONTAINER - Pass showPoints instead of viewMode */}
         <div className="w-full h-full rounded-xl overflow-hidden">
-          <RoadLineMap onMapReady={handleMapReady} viewMode={viewMode} />
+          {/* Pass showPoints to RoadLineMap if it needs it, or remove prop if not used */}
+          <RoadLineMap onMapReady={handleMapReady} />
+          {/* Assuming RoadLineMap uses showPoints from context directly now */}
         </div>
 
         {/* Top Road Segments List */}

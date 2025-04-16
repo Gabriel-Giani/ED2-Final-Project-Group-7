@@ -50,6 +50,7 @@ export const initialState = {
   // UI State
   loading: false,
   loadingMessage: "",
+  showPoints: false,
 
   // Reference Data
   counties: [],
@@ -65,6 +66,7 @@ const actionTypes = {
   SET_FILTERS: "SET_FILTERS",
   SET_COUNTIES: "SET_COUNTIES",
   SET_CITIES: "SET_CITIES",
+  SET_SHOW_POINTS: "SET_SHOW_POINTS",
 };
 
 // Reducer
@@ -84,6 +86,8 @@ function reducer(state, action) {
       return { ...state, counties: action.payload };
     case actionTypes.SET_CITIES:
       return { ...state, cities: action.payload };
+    case actionTypes.SET_SHOW_POINTS:
+      return { ...state, showPoints: action.payload };
     default:
       return state;
   }
@@ -186,6 +190,8 @@ export function AccidentProvider({ children }) {
       dispatch({ type: actionTypes.SET_COUNTIES, payload: counties }),
     setCities: (cities) =>
       dispatch({ type: actionTypes.SET_CITIES, payload: cities }),
+    setShowPoints: (show) =>
+      dispatch({ type: actionTypes.SET_SHOW_POINTS, payload: show }),
   };
 
   return (

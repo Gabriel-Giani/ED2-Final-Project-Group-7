@@ -1230,100 +1230,158 @@ export const accidentDataService = {
    * @returns {Promise<Array>} Array of accident objects
    */
   async getAccidents(filters) {
+    console.log("Fetching accidents with filters:", filters);
+    const selectColumns = `
+      crashnum, crashdate, crashtime, latitude, longitude,
+      onroadname, inroadname, townname, dotcounty, highestinj,
+      crshalcdrg, lightcond, weathcond, rdsurfcond, 
+      dayofweek, totcrshdmg, casenumber, flag_imp, 
+      fl_aggrsv, fl_vru_ped, fl_vru_bik, fl_vru_mot, fl_ar_teen, fl_ar_ag
+    `;
+
     try {
-      let query = supabase.from("ultimate-table").select("*");
+      let query = supabase.from("ultimate-table").select(selectColumns);
 
-      // Apply filters
-      if (filters) {
-        // Date range filters
-        if (filters.dateRange?.start) {
-          query = query.gte("crashdate", filters.dateRange.start);
+      // Apply Region Filters
+      if (filters?.filterRegion === "county" && filters?.regionName) {
+        const countyCodeStr = this.getCountyCodeFromName(filters.regionName);
+        if (countyCodeStr) {
+          const countyCodeInt = parseInt(countyCodeStr, 10);
+          if (!isNaN(countyCodeInt)) {
+            console.log(
+              `Applying ACCIDENT filter: dotcounty EQ ${countyCodeInt} (Name: ${filters.regionName})`
+            );
+            // Use the parsed integer code for the filter
+            query = query.eq("dotcounty", countyCodeInt);
+          } else {
+            console.warn(
+              `Failed to parse county code string: ${countyCodeStr} for name: ${filters.regionName}. Skipping county filter in getAccidents.`
+            );
+          }
+        } else {
+          console.warn(
+            `Could not find county code for name: ${filters.regionName}. Skipping county filter in getAccidents.`
+          );
         }
-        if (filters.dateRange?.end) {
-          query = query.lte("crashdate", filters.dateRange.end);
-        }
+      } else if (filters?.filterRegion === "city" && filters?.regionName) {
+        console.log(
+          `Applying ACCIDENT filter: townname ILIKE ${filters.regionName}`
+        );
+        query = query.ilike("townname", `%${filters.regionName}%`);
+      }
 
-        // Time range filters
-        if (
-          filters.useTimeFilter &&
-          filters.timeRange?.start &&
-          filters.timeRange?.end
-        ) {
+      // Apply Date Range Filter
+      if (filters?.dateRange?.start && filters?.dateRange?.end) {
+        query = query
+          .gte("crashdate", filters.dateRange.start)
+          .lte("crashdate", filters.dateRange.end);
+      }
+
+      // Apply Time Range Filter (if enabled)
+      if (
+        filters?.useTimeFilter &&
+        filters?.timeRange?.start &&
+        filters?.timeRange?.end
+      ) {
+        const timeStartDb = convertTimeToDbFormat(filters.timeRange.start);
+        const timeEndDb = convertTimeToDbFormat(filters.timeRange.end);
+        if (timeStartDb && timeEndDb) {
           query = query
-            .gte("crashtime", filters.timeRange.start)
-            .lte("crashtime", filters.timeRange.end);
-        }
-
-        // Region filters
-        if (filters.filterRegion === "county" && filters.regionName) {
-          query = query.eq("dotcounty", filters.regionName.toUpperCase());
-        } else if (filters.filterRegion === "city" && filters.regionName) {
-          query = query.eq("townname", filters.regionName.toUpperCase());
-        }
-
-        // Additional filters
-        if (filters.dayOfWeek) {
-          query = query.eq("dayofweek", filters.dayOfWeek);
-        }
-        if (filters.injuryLevel) {
-          query = query.eq("highestinj", filters.injuryLevel);
-        }
-        if (filters.lightCondition) {
-          query = query.eq("lightcond", filters.lightCondition);
-        }
-        if (filters.weatherCondition) {
-          query = query.eq("weathcond", filters.weatherCondition);
-        }
-        if (filters.roadSurfaceCondition) {
-          query = query.eq("rdsurfcond", filters.roadSurfaceCondition);
-        }
-        if (filters.direction) {
-          query = query.eq("refdirect", filters.direction);
-        }
-
-        // Boolean filters
-        if (filters.aggressiveDriving) {
-          query = query.eq("fl_aggrsv", true);
-        }
-        if (filters.pedestrianInvolved) {
-          query = query.eq("fl_vru_ped", true);
-        }
-        if (filters.bicycleInvolved) {
-          query = query.eq("fl_vru_bik", true);
-        }
-        if (filters.motorcycleInvolved) {
-          query = query.eq("fl_vru_mot", true);
-        }
-        if (filters.teenInvolved) {
-          query = query.eq("fl_ar_teen", true);
-        }
-        if (filters.impaired) {
-          query = query.eq("flag_imp", true);
-        }
-
-        // Damage range filters
-        if (filters.damageMin) {
-          query = query.gte("totcrshdmg", filters.damageMin);
-        }
-        if (filters.damageMax) {
-          query = query.lte("totcrshdmg", filters.damageMax);
+            .gte("crashtime", timeStartDb)
+            .lte("crashtime", timeEndDb);
         }
       }
 
-      // Limit the number of accidents to prevent performance issues
-      query = query.limit(5000);
+      // Apply Day of Week Filter
+      if (filters?.dayOfWeek) {
+        query = query.eq("dayofweek", parseInt(filters.dayOfWeek, 10));
+      }
 
+      // Apply Road Name Filter
+      if (filters?.roadName) {
+        query = query.ilike("onroadname", `%${filters.roadName}%`);
+      }
+
+      // Apply Injury Level Filter
+      if (filters?.injuryLevel) {
+        query = query.eq("highestinj", parseInt(filters.injuryLevel, 10));
+      }
+
+      // Apply Light Condition Filter
+      if (filters?.lightCondition) {
+        query = query.eq("lightcond", filters.lightCondition);
+      }
+
+      // Apply Weather Condition Filter
+      if (filters?.weatherCondition) {
+        query = query.eq("weathcond", filters.weatherCondition);
+      }
+
+      // Apply Road Surface Condition Filter
+      if (filters?.roadSurfaceCondition) {
+        query = query.eq("rdsurfcond", filters.roadSurfaceCondition);
+      }
+
+      // Apply Direction Filter
+      if (filters?.direction) {
+        query = query.eq("refdirect", filters.direction);
+      }
+
+      // Apply Aggressive Driving Filter
+      if (filters?.aggressiveDriving === true) {
+        query = query.eq("fl_aggrsv", "Y");
+      }
+
+      // Apply Impaired Driver Filter (Alcohol or Drugs)
+      if (filters?.impaired === true) {
+        query = query.or(
+          "flag_imp.eq.Y,crshalcdrg.eq.1,crshalcdrg.eq.2,crshalcdrg.eq.3"
+        );
+      }
+
+      // Apply Participant Filters
+      if (filters?.pedestrianInvolved === true) {
+        query = query.eq("fl_vru_ped", "Y");
+      }
+      if (filters?.bicycleInvolved === true) {
+        query = query.eq("fl_vru_bik", "Y");
+      }
+      if (filters?.motorcycleInvolved === true) {
+        query = query.eq("fl_vru_mot", "Y");
+      }
+      if (filters?.teenInvolved === true) {
+        query = query.eq("fl_ar_teen", "Y");
+      }
+      if (filters?.elderlyInvolved === true) {
+        query = query.eq("fl_ar_ag", "Y");
+      }
+
+      // Apply Damage Filters
+      if (filters?.damageMin) {
+        query = query.gte("totcrshdmg", parseInt(filters.damageMin, 10));
+      }
+      if (filters?.damageMax) {
+        query = query.lte("totcrshdmg", parseInt(filters.damageMax, 10));
+      }
+
+      // Apply Limit - reasonable default
+      const limit = filters?.limit || 5000; // Increased limit slightly
+      query = query.limit(limit);
+
+      // Execute query
+      console.log("Executing Supabase accident query...");
       const { data, error } = await query;
 
       if (error) {
-        console.error("Error fetching accidents:", error);
-        return [];
+        console.error("Supabase error fetching accidents:", error);
+        throw error;
       }
 
+      console.log(`Fetched ${data?.length || 0} accidents from database.`);
       return data || [];
     } catch (error) {
-      console.error("Error in getAccidents:", error);
-      return [];
+      console.error("Error fetching accidents:", error);
+      return []; // Return empty array on error
     }
   },
 };

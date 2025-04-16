@@ -296,15 +296,14 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
 }
 
 // --- The Map Component ---
-export default function RoadLineMap({ onMapReady, viewMode }) {
+export default function RoadLineMap({ onMapReady }) {
   const mapRef = useRef(null);
   const mapContainerRef = useRef(null);
-  const { roadLineSegments, accidents } = useAccidentContext();
+  const { roadLineSegments, accidents, showPoints } = useAccidentContext();
   const vectorLayerRef = useRef(null);
   const pointsLayerRef = useRef(null);
   const clusterSourceRef = useRef(null);
 
-  // Add state for selected accident
   const [selectedAccident, setSelectedAccident] = useState(null);
 
   // Initialize map
@@ -409,22 +408,22 @@ export default function RoadLineMap({ onMapReady, viewMode }) {
     };
   }, [onMapReady]);
 
-  // Update map features based on view mode
+  // Update map features based on showPoints state from context
   useEffect(() => {
     if (!mapRef.current || !vectorLayerRef.current || !pointsLayerRef.current)
       return;
 
-    // Toggle layer visibility based on view mode
-    vectorLayerRef.current.setVisible(viewMode === "hotspots");
-    pointsLayerRef.current.setVisible(viewMode === "points");
+    // Toggle layer visibility based on showPoints from context
+    vectorLayerRef.current.setVisible(!showPoints);
+    pointsLayerRef.current.setVisible(showPoints);
 
-    // Update appropriate layer based on view mode
-    if (viewMode === "hotspots") {
+    // Update appropriate layer based on showPoints
+    if (!showPoints) {
       updateHotspotLayer();
     } else {
       updatePointsLayer();
     }
-  }, [viewMode, roadLineSegments, accidents]);
+  }, [showPoints, roadLineSegments, accidents]);
 
   // Function to update hotspot layer
   const updateHotspotLayer = () => {
