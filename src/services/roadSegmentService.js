@@ -72,142 +72,207 @@ const convertTimeToDbFormat = (timeString) => {
 };
 
 /**
+ * Splits a LineString coordinate array into segments of a maximum length.
+ * @param {Array<Array<number>>} coordinates - Array of [lon, lat] points.
+ * @param {number} maxSegmentLengthKm - Maximum length of each segment in kilometers.
+ * @returns {Array<Array<Array<number>>>} - An array of coordinate arrays, each representing a split segment.
+ */
+function splitLineString(coordinates, maxSegmentLengthKm) {
+  if (!coordinates || coordinates.length <= 1) {
+    return [coordinates]; // Return original if it's too short to split
+  }
+
+  const splitSegments = [];
+  let currentSegment = [coordinates[0]]; // Start with the first point
+  let currentSegmentLengthKm = 0;
+
+  for (let i = 1; i < coordinates.length; i++) {
+    const [lon1, lat1] = coordinates[i - 1];
+    const [lon2, lat2] = coordinates[i];
+    const stepDistanceKm = calculateGeoDistance(lat1, lon1, lat2, lon2);
+
+    if (currentSegmentLengthKm + stepDistanceKm > maxSegmentLengthKm) {
+      // Current step exceeds max length, finalize the current segment
+      if (currentSegment.length > 1) {
+        // Only add if segment has more than one point
+        splitSegments.push(currentSegment);
+      }
+      // Start a new segment beginning with the previous point to ensure overlap/continuity
+      currentSegment = [coordinates[i - 1], coordinates[i]];
+      currentSegmentLengthKm = stepDistanceKm; // Reset length to the last step's distance
+    } else {
+      // Add current point to the segment and update length
+      currentSegment.push(coordinates[i]);
+      currentSegmentLengthKm += stepDistanceKm;
+    }
+  }
+
+  // Add the last segment if it has points
+  if (currentSegment.length > 1) {
+    splitSegments.push(currentSegment);
+  }
+
+  // Handle case where the original line was shorter than maxSegmentLengthKm
+  if (splitSegments.length === 0 && coordinates.length > 1) {
+    return [coordinates];
+  }
+
+  return splitSegments;
+}
+
+/**
  * Maps accident data to major road segments
  * (Internal function, adapted from consolidated-playground)
  */
 async function mapAccidentsToRoadSegments(
   roadData,
   accidentData,
-  progressCallback
+  progressCallback,
+  maxSegmentLengthKm = 5 // Add default max length
 ) {
   try {
-    const parsedRoadSegments = roadData
-      .map((road) => {
-        try {
-          const geometry = wellknown.parse(road.WKT);
-          if (
-            !geometry ||
-            !geometry.coordinates ||
-            geometry.type !== "LineString"
-          ) {
-            console.warn(
-              `Skipping road ${road.LINEARID} due to invalid geometry:`,
-              road.WKT
-            );
-            return null;
-          }
-          return {
-            id: road.LINEARID,
-            name: road.FULLNAME,
-            roadType: road.RTTYP,
-            mtfcc: road.MTFCC,
-            geometry: geometry,
-            accidents: [],
-            bbox: calculateBoundingBox(geometry.coordinates),
-          };
-        } catch (e) {
-          console.error(
-            `Error parsing WKT for road ${road.LINEARID}:`,
-            e,
-            road.WKT
-          );
-          return null;
-        }
-      })
-      .filter(Boolean);
+    let allSplitSegments = []; // Store all split segments here
 
-    const batchSize = 100;
-    let processedCount = 0;
-    const totalRoads = parsedRoadSegments.length;
+    roadData.forEach((road) => {
+      try {
+        const geometry = wellknown.parse(road.WKT);
+        if (
+          !geometry ||
+          !geometry.coordinates ||
+          geometry.coordinates.length < 2 || // Need at least 2 points for a line
+          geometry.type !== "LineString"
+        ) {
+          console.warn(
+            `Skipping road ${road.LINEARID} due to invalid/short geometry:`
+          );
+          return; // Use return inside forEach instead of continue
+        }
+
+        // Split the original road geometry into smaller segments
+        const splitCoordinates = splitLineString(
+          geometry.coordinates,
+          maxSegmentLengthKm
+        );
+
+        splitCoordinates.forEach((coords, index) => {
+          if (coords && coords.length >= 2) {
+            // Ensure split segment is valid
+            allSplitSegments.push({
+              originalId: road.LINEARID,
+              splitIndex: index,
+              id: `${road.LINEARID}-part-${index}`, // Unique ID for the split part
+              name: road.FULLNAME,
+              roadType: road.RTTYP,
+              mtfcc: road.MTFCC,
+              geometry: { type: "LineString", coordinates: coords },
+              accidents: [], // Initialize accidents for this split segment
+              bbox: calculateBoundingBox(coords), // Calculate bbox for the split segment
+            });
+          }
+        });
+      } catch (e) {
+        console.error(
+          `Error parsing WKT or splitting road ${road.LINEARID}:`,
+          e,
+          road.WKT
+        );
+        // Continue to next road
+      }
+    });
+
+    // Now map accidents to the split segments
+    const totalSegments = allSplitSegments.length;
+    let processedSegmentCount = 0;
+    const batchSize = 200; // Adjust batch size if needed for segment processing
 
     if (progressCallback) {
       progressCallback({
-        processed: processedCount,
-        total: totalRoads,
-        message: "Mapping accidents to roads...",
+        processed: processedSegmentCount,
+        total: totalSegments,
+        message: "Mapping accidents to road segments...",
       });
     }
 
-    for (let i = 0; i < parsedRoadSegments.length; i += batchSize) {
-      const batch = parsedRoadSegments.slice(
+    // Process segments in batches to avoid blocking
+    for (let i = 0; i < totalSegments; i += batchSize) {
+      const batch = allSplitSegments.slice(
         i,
-        Math.min(i + batchSize, parsedRoadSegments.length)
+        Math.min(i + batchSize, totalSegments)
       );
 
       batch.forEach((segment) => {
+        // Find accidents within the bounding box of THIS split segment
         const matchingAccidents = accidentData.filter((accident) => {
           if (!accident.latitude || !accident.longitude) return false;
           const lat = parseFloat(accident.latitude);
           const lon = parseFloat(accident.longitude);
-          const padding = 0.001; // Approx 100m BBox padding
+          // Use a smaller padding for potentially smaller segment boxes
+          const padding = 0.0005; // Approx 50m BBox padding
 
-          // Primary Check: Accident within the segment's padded bounding box
+          // Check against the split segment's bounding box
           if (
             lon >= segment.bbox.minLon - padding &&
             lon <= segment.bbox.maxLon + padding &&
             lat >= segment.bbox.minLat - padding &&
             lat <= segment.bbox.maxLat + padding
           ) {
-            // Secondary Check (Optional but good): Check if accident mentions the road name
-            const isOnSameRoad =
-              segment.name &&
-              accident.onroadname &&
-              accident.onroadname
-                .toLowerCase()
-                .includes(segment.name.toLowerCase());
-
-            // Consider it a match if it's in the bbox, prioritizing those on the same named road
-            // This is a simplification; true point-to-line distance is more accurate but expensive
-            return true; // Keeping it simple based on playground logic for now
+            // Optional: Keep road name check (can be less reliable with splits)
+            // const isOnSameRoad = segment.name && accident.onroadname &&
+            //                    accident.onroadname.toLowerCase().includes(segment.name.toLowerCase());
+            // return isOnSameRoad; // If requiring name match
+            return true; // Match based on proximity to the split segment's box
           }
           return false;
         });
         segment.accidents = matchingAccidents;
       });
 
-      processedCount += batch.length;
+      processedSegmentCount += batch.length;
       if (progressCallback) {
         progressCallback({
-          processed: processedCount,
-          total: totalRoads,
-          message: `Mapping accidents (${processedCount}/${totalRoads})...`,
+          processed: processedSegmentCount,
+          total: totalSegments,
+          message: `Mapping accidents (${processedSegmentCount}/${totalSegments})...`,
         });
       }
-      await new Promise((resolve) => setTimeout(resolve, 0)); // Prevent UI freeze
+      // Yield to the event loop
+      await new Promise((resolve) => setTimeout(resolve, 0));
     }
 
-    const processedRoadSegments = parsedRoadSegments
+    // Calculate intensity and other properties for each split segment
+    const processedRoadSegments = allSplitSegments
       .map((segment) => {
-        if (segment.accidents.length === 0) return null;
+        if (segment.accidents.length === 0) return null; // Skip segments with no accidents
 
         const segmentLength = calculateLineLength(segment.geometry.coordinates);
-        // Avoid division by zero for very short segments or single points
+
         if (segmentLength <= 0) {
-          console.warn(`Segment ${segment.id} has zero or negative length.`);
-          // Assign a high intensity if accidents exist but length is zero? Or handle differently?
-          // For now, treat as high intensity based on count alone.
-          const intensity = Math.min(segment.accidents.length / 5, 1); // Cap intensity based purely on count (e.g., 5 accidents = max intensity)
+          // Handle zero-length segments (e.g., if split resulted in overlapping points)
+          console.warn(
+            `Split segment ${segment.id} has zero or negative length.`
+          );
+          // Assign intensity based purely on count if length is zero
+          const intensity = Math.min(segment.accidents.length / 5, 1); // Example: 5 accidents = max intensity
           return {
             id: segment.id,
             name: segment.name,
             roadType: segment.roadType,
             count: segment.accidents.length,
             length: 0,
-            intensity,
-            accidentsPerKm: Infinity, // Or handle differently
-            geometry: {
-              type: "LineString",
-              coordinates: segment.geometry.coordinates,
-            },
+            intensity: intensity,
+            accidentsPerKm: Infinity,
+            geometry: segment.geometry,
           };
         }
 
         const accidentsPerKmRaw =
           segment.accidents.length / (segmentLength / 1000);
-        // Cap accidentsPerKm at a reasonable max (e.g., 20) to prevent extreme outliers
-        const accidentsPerKmCapped = Math.min(accidentsPerKmRaw, 20);
-        // Normalize intensity to 0-1 range based on the cap
-        const intensity = accidentsPerKmCapped / 20;
+        // Keep the capping and normalization logic
+        const accidentsPerKmCapped = Math.min(accidentsPerKmRaw, 20); // Cap at 20 accidents/km
+        const intensity = Math.min(accidentsPerKmCapped / 20, 1); // Normalize 0-1 based on cap
+
+        // Only return segments with non-zero intensity
+        if (intensity <= 0) return null;
 
         return {
           id: segment.id,
@@ -215,15 +280,12 @@ async function mapAccidentsToRoadSegments(
           roadType: segment.roadType,
           count: segment.accidents.length,
           length: segmentLength, // length in meters
-          intensity,
+          intensity: intensity,
           accidentsPerKm: accidentsPerKmRaw, // Store the raw value for info
-          geometry: {
-            type: "LineString",
-            coordinates: segment.geometry.coordinates,
-          },
+          geometry: segment.geometry, // Use the split geometry
         };
       })
-      .filter(Boolean);
+      .filter(Boolean); // Filter out null values (no accidents or zero intensity)
 
     // Sort by intensity (highest first)
     return processedRoadSegments.sort((a, b) => b.intensity - a.intensity);
@@ -477,11 +539,12 @@ export async function getMajorRoadLineSegments(
         } accidents. Processing...`,
       });
 
-    // 3. Map accidents to road segments
+    // 3. Map accidents to road segments (pass the max length, e.g., 5km)
     const processedSegments = await mapAccidentsToRoadSegments(
       roadData,
       accidentData || [], // Ensure accidentData is an array
-      progressCallback // Pass callback down
+      progressCallback,
+      5 // Max segment length in KM passed here
     );
 
     console.log(
