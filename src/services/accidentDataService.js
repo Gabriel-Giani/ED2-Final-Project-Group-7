@@ -984,9 +984,6 @@ export const accidentDataService = {
         query = query.eq("fl_ar_ag", filters.fl_ar_ag);
       }
 
-      // Apply limit with a reasonable default
-      query = query.limit(filters.limit || 2000);
-
       // Execute the query
       const { data, error } = await query;
 
@@ -1363,10 +1360,6 @@ export const accidentDataService = {
       if (filters?.damageMax) {
         query = query.lte("totcrshdmg", parseInt(filters.damageMax, 10));
       }
-
-      // Apply Limit - reasonable default
-      const limit = filters?.limit || 5000; // Increased limit slightly
-      query = query.limit(limit);
 
       // Execute query
       console.log("Executing Supabase accident query...");
