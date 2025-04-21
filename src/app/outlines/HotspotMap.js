@@ -100,6 +100,15 @@ const cityBoundaryStyle = new Style({
   }),
 });
 
+// Style for road segment end markers (Debug version)
+const endMarkerStyle = new Style({
+  image: new Circle({
+    radius: 8, // Increased radius for visibility
+    fill: new Fill({ color: "#FF00FF" }), // Bright magenta fill, no stroke
+  }),
+  zIndex: 1.5, // Ensure markers are drawn slightly above the line
+});
+
 // Cluster style function
 function getClusterStyle(feature) {
   const size = feature.get("features").length;
@@ -136,16 +145,58 @@ function getHeatColor(intensity) {
 
 // Road segment style function based on intensity
 function getRoadSegmentStyle(feature) {
+  console.log("[StyleFunc] Called for feature:", feature.get("name")); // Log 1
   const intensity = feature.get("intensity") || 0;
   const color = getHeatColor(intensity);
-  const width = 3 + intensity * 5; // Width increases with intensity
+  // Slightly reduce base width to make markers more distinct
+  const width = 2 + intensity * 4;
 
-  return new Style({
+  // Style for the main line segment
+  const lineStyle = new Style({
     stroke: new Stroke({
       color: color,
       width: width,
     }),
+    zIndex: 1, // Base zIndex for the line
   });
+
+  // Get coordinates to place markers
+  const geometry = feature.getGeometry();
+  if (!geometry || typeof geometry.getCoordinates !== "function") {
+    return lineStyle; // Return only line style if geometry is invalid
+  }
+  const coordinates = geometry.getCoordinates();
+  console.log(`[StyleFunc] Coords length: ${coordinates?.length}`); // Log 2
+
+  // Ensure there are at least two points for start/end
+  if (coordinates && coordinates.length >= 2) {
+    const startCoord = coordinates[0];
+    const endCoord = coordinates[coordinates.length - 1];
+    console.log(`[StyleFunc] StartCoord: ${startCoord}, EndCoord: ${endCoord}`); // Log 3
+
+    // Create styles for the start and end points using the marker style
+    const startMarker = new Style({
+      geometry: new Point(startCoord),
+      image: endMarkerStyle.getImage(), // Reuse the image part of the style
+      zIndex: endMarkerStyle.getZIndex(), // Use the marker zIndex
+    });
+
+    const endMarker = new Style({
+      geometry: new Point(endCoord),
+      image: endMarkerStyle.getImage(), // Reuse the image part of the style
+      zIndex: endMarkerStyle.getZIndex(), // Use the marker zIndex
+    });
+
+    // Return array of styles: line + start marker + end marker
+    console.log("[StyleFunc] Returning array with markers"); // Log 4
+    return [lineStyle, startMarker, endMarker];
+  } else {
+    // If only one point or invalid coordinates, just return the line style
+    console.log(
+      "[StyleFunc] Returning only line style (not enough coords or invalid geom)"
+    ); // Log 4 (alternative)
+    return lineStyle;
+  }
 }
 
 // Helper function to format date string

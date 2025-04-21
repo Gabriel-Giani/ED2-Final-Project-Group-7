@@ -497,7 +497,7 @@ export default function HomePage() {
 
       {/* FOOTER */}
       <footer className="h-10 bg-gray-900 border-t border-gray-700 text-gray-400 text-center flex items-center justify-center text-sm z-20">
-        Created by: Chris Medrano, Gabriel Giani, Leonardo Silva &amp; Gavin
+        Created by: Chris Medrano, Gabriel Giani, Leonardo Silva &amp; William
         West
       </footer>
     </div>
