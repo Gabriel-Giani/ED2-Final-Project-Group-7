@@ -261,17 +261,17 @@ export default function HomePage() {
         console.log(
           `Found ${filteredFeatures.length} features matching city name: ${regionName}`
         );
-      } else if (filterRegion === "county" && regionName) {
-        // If a county is selected, show all cities in that county
-        console.log("Filtering for cities in county:", regionName);
-        filteredFeatures = features.filter((feature) => {
-          const county = feature.get("COUNTY") || "";
-          const matches = county.toLowerCase() === regionName.toLowerCase();
-          return matches;
-        });
-        console.log(
-          `Found ${filteredFeatures.length} features in county: ${regionName}`
-        );
+        // } else if (filterRegion === "county" && regionName) {
+        //   // If a county is selected, show all cities in that county
+        //   console.log("Filtering for cities in county:", regionName);
+        //   filteredFeatures = features.filter((feature) => {
+        //     const county = feature.get("COUNTY") || "";
+        //     const matches = county.toLowerCase() === regionName.toLowerCase();
+        //     return matches;
+        //   });
+        //   console.log(
+        //     `Found ${filteredFeatures.length} features in county: ${regionName}`
+        //   );
       } else if (filterRegion === "state") {
         // For state-level view, don't show any cities to avoid clutter
         console.log("State-level view, not showing city boundaries");

@@ -444,51 +444,80 @@ export default function HotspotMap({ onMapReady, selectedCounty }) {
     }
   }, [selectedCounty, filterRegion, regionName]);
 
-  // Update point features when accidents change - Improved implementation
+  // Update point features when accidents change or showPoints becomes true
   useEffect(() => {
-    // Only update if showing points and the map is initialized
-    if (!showPoints || !mapRef.current) return;
+    // Map must be initialized
+    if (!mapRef.current) return;
 
-    // Clear existing points
-    pointsSource.current.clear();
+    console.log(`[Points Effect] Running. showPoints: ${showPoints}`); // Log 1
 
-    // Add individual accident points
-    if (accidents && accidents.length > 0) {
+    // If we are showing points, ensure data is loaded
+    if (showPoints) {
       console.log(
-        `Adding ${accidents.length} individual accident points to map`
+        "[Points Effect] Show Points is true, ensuring accident points are loaded..."
       );
+      // Clear existing points first to avoid duplicates if accidents haven't changed
+      pointsSource.current.clear();
 
-      const features = accidents
-        .filter((accident) => accident.latitude && accident.longitude)
-        .map((accident) => {
-          // Create a new feature with point geometry
-          const feature = new Feature({
-            geometry: new Point(
-              fromLonLat([accident.longitude, accident.latitude])
-            ),
-          });
+      console.log(
+        `[Points Effect] Accidents received: ${accidents?.length || 0}`
+      ); // Log 2
 
-          // Set individual properties directly on the feature
-          // Do not use a nested 'properties' object which can be harder to access
-          Object.keys(accident).forEach((key) => {
-            feature.set(key, accident[key]);
-          });
+      // Add individual accident points
+      if (accidents && accidents.length > 0) {
+        let features = [];
+        try {
+          features = accidents
+            .filter((accident) => accident.latitude && accident.longitude)
+            .map((accident) => {
+              const feature = new Feature({
+                geometry: new Point(
+                  fromLonLat([accident.longitude, accident.latitude])
+                ),
+              });
+              Object.keys(accident).forEach((key) => {
+                feature.set(key, accident[key]);
+              });
+              return feature;
+            });
 
-          return feature;
-        });
+          console.log(`[Points Effect] Features created: ${features.length}`); // Log 3
+        } catch (error) {
+          console.error("[Points Effect] Error creating features:", error);
+          features = []; // Ensure features is empty if mapping failed
+        }
 
-      if (features.length > 0) {
-        console.log(
-          "Sample accident feature keys:",
-          Object.keys(features[0].getProperties())
-        );
-        pointsSource.current.addFeatures(features);
+        if (features.length > 0) {
+          try {
+            pointsSource.current.addFeatures(features);
+            console.log(
+              `[Points Effect] Features added to source. Source count: ${
+                pointsSource.current.getFeatures().length
+              }`
+            ); // Log 4
+          } catch (error) {
+            console.error(
+              "[Points Effect] Error adding features to source:",
+              error
+            );
+          }
+        } else {
+          console.log("[Points Effect] No valid features created to add.");
+        }
+      } else {
+        console.log("[Points Effect] No accident data available to display.");
       }
+    } else {
+      // If hiding points, clear the source
+      console.log(
+        "[Points Effect] Show Points is false, clearing points source."
+      );
+      pointsSource.current.clear();
     }
 
-    // Force map refresh
+    // Force map refresh regardless of whether points were added or cleared
     mapRef.current.render();
-  }, [accidents, showPoints]);
+  }, [accidents, showPoints]); // Keep dependencies: run if accidents OR showPoints change
 
   // Load Florida counties GeoJSON data
   useEffect(() => {

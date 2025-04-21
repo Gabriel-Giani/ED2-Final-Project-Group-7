@@ -170,6 +170,9 @@ export function AccidentProvider({ children }) {
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
+        console.log("Clearing cache before fetching filter options...");
+        accidentDataService.clearCache();
+
         console.log("Fetching initial filter options (counties, cities)...");
         // Fetch counties using getRegionOptions
         const counties = await accidentDataService.getRegionOptions("county");
@@ -183,6 +186,9 @@ export function AccidentProvider({ children }) {
 
         // Fetch cities using getRegionOptions
         const cities = await accidentDataService.getRegionOptions("city");
+
+        console.log("Raw cities received from service:", cities);
+
         if (cities && cities.length > 0) {
           dispatch({ type: actionTypes.SET_CITIES, payload: cities });
           console.log(`Fetched ${cities.length} unique cities.`);
