@@ -13,6 +13,7 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { Circle, Style, Fill, Stroke, Text } from "ol/style";
 import GeoJSON from "ol/format/GeoJSON";
+import Link from "next/link";
 
 // Helper to calculate bounding box from LonLat coordinates
 function calculateLonLatBoundingBox(coordinates) {
@@ -428,6 +429,17 @@ export default function HomePage() {
             {/* Update button text based on showPoints from context */}
             {showPoints ? "Show Hotspots" : "Show Points"}
           </motion.button>
+
+          <Link href="/case-study/fau" passHref legacyBehavior>
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-500 transition-colors"
+            >
+              FAU Case Study
+            </motion.a>
+          </Link>
+
           <AboutButton />
         </div>
       </div>
