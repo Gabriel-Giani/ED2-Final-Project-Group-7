@@ -39,19 +39,27 @@ export default function RegionSelector({
   };
   
   return (
-    <div className="bg-gray-200 rounded p-3" onClick={(e) => e.stopPropagation()}>
+    <div className="border border-gray-700 rounded p-3 bg-[#252b3b]" onClick={(e) => e.stopPropagation()}>
       {/* Show the selected region name or prompt to select one */}
       <div className="flex justify-between items-center mb-2">
-        <div className="font-medium">
+        <div className="font-medium text-gray-200">
           {regionName
             ? `${regionName}`
             : `Select a ${regionType}`}
         </div>
         <button
-          className="text-gray-500 hover:text-gray-700"
+          className="text-gray-400 hover:text-white"
           onClick={toggleExpanded}
         >
-          {expanded ? "▲" : "▼"}
+          {expanded ? (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+              <path fillRule="evenodd" d="M9.47 6.47a.75.75 0 011.06 0l4.25 4.25a.75.75 0 11-1.06 1.06L10 8.06l-3.72 3.72a.75.75 0 01-1.06-1.06l4.25-4.25z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+              <path fillRule="evenodd" d="M10 13.5a.75.75 0 01-.75-.75V6.69l-1.22 1.22a.75.75 0 11-1.06-1.06l2.5-2.5a.75.75 0 011.06 0l2.5 2.5a.75.75 0 11-1.06 1.06l-1.22-1.22v6.06a.75.75 0 01-.75.75z" clipRule="evenodd" />
+            </svg>
+          )}
         </button>
       </div>
 
@@ -61,22 +69,22 @@ export default function RegionSelector({
           <input
             type="text"
             placeholder={`Search ${regionType}...`}
-            className="w-full p-2 mb-2 bg-white border border-gray-300 rounded"
+            className="w-full p-2 mb-2 bg-[#1e2330] border border-gray-700 rounded text-white placeholder-gray-400"
             value={searchTerm}
             onChange={handleSearchChange}
             onClick={(e) => e.stopPropagation()}
           />
 
-          <div className="max-h-40 overflow-y-auto bg-white rounded border border-gray-300">
+          <div className="max-h-40 overflow-y-auto bg-[#1e2330] rounded border border-gray-700">
             {options.length === 0 ? (
-              <div className="p-2 text-center text-gray-500">Loading...</div>
+              <div className="p-2 text-center text-gray-400">Loading...</div>
             ) : filteredRegions().length > 0 ? (
               <ul>
                 {filteredRegions().map((name, index) => (
                   <li
                     key={index}
-                    className={`p-2 hover:bg-gray-100 cursor-pointer ${
-                      name === regionName ? "bg-blue-100" : ""
+                    className={`p-2 hover:bg-[#2d3748] cursor-pointer ${
+                      name === regionName ? "bg-blue-900/50 text-white" : "text-gray-200"
                     }`}
                     onClick={(e) => handleRegionSelect(name, e)}
                   >
@@ -85,7 +93,7 @@ export default function RegionSelector({
                 ))}
               </ul>
             ) : (
-              <div className="p-2 text-center text-gray-500">
+              <div className="p-2 text-center text-gray-400">
                 No {regionType} found
               </div>
             )}

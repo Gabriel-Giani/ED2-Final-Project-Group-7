@@ -411,30 +411,52 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-gray-900 text-white">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-gradient-to-br from-gray-900 to-slate-900 text-white">
       {/* NAV BAR */}
-      <div className="h-14 flex items-center justify-between px-4 bg-gray-900 border-b border-gray-700 relative z-20">
-        <FiltersButton />
-        <h1 className="text-lg font-bold">Don&apos;t Drive Here</h1>
-        <div className="flex items-center gap-2">
+      <header className="h-[var(--header-height)] flex items-center justify-between px-5 bg-opacity-70 backdrop-blur-md border-b border-gray-700/50 relative z-20 shadow-lg">
+        <div className="flex items-center gap-4">
+          <FiltersButton />
+          <div className="h-6 border-r border-gray-600 hidden sm:block"></div>
           <motion.button
             type="button"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={
-              () => setShowPoints(!showPoints) // Use setShowPoints from context
-            }
-            className="bg-gray-700 text-white px-3 py-1 rounded-md text-sm hover:bg-gray-600 transition-colors"
+            onClick={() => setShowPoints(!showPoints)}
+            className="pill-button bg-gray-700/80 hover:bg-gray-600 text-sm font-medium hidden sm:flex items-center gap-2"
           >
-            {/* Update button text based on showPoints from context */}
-            {showPoints ? "Show Hotspots" : "Show Points"}
+            {showPoints ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path d="M5.25 3A2.25 2.25 0 003 5.25v9.5A2.25 2.25 0 005.25 17h9.5A2.25 2.25 0 0017 14.75v-9.5A2.25 2.25 0 0014.75 3h-9.5z" />
+                </svg>
+                Show Hotspots
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="M8.5 3.528v4.644c0 .729-.29 1.428-.805 1.944l-1.217 1.216a8.75 8.75 0 013.55.621l.502.201a7.25 7.25 0 004.178.365l-2.403-2.403a2.75 2.75 0 01-.805-1.944V3.528a40.205 40.205 0 00-3 0zm4.5.084l.19.015a.75.75 0 10.12-1.495 41.364 41.364 0 00-6.62 0 .75.75 0 00.12 1.495L7 3.612v4.56c0 .331-.132.649-.366.883L2.6 13.09c-1.496 1.496-.817 4.15 1.403 4.475C5.961 17.852 7.963 18 10 18s4.039-.148 5.997-.436c2.22-.325 2.9-2.979 1.403-4.475l-4.034-4.034A1.25 1.25 0 0113 8.172v-4.56z" clipRule="evenodd" />
+                </svg>
+                Show Points
+              </>
+            )}
           </motion.button>
-
+        </div>
+        
+        <h1 className="text-xl font-bold tracking-tight absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-red-500">
+            <path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25zM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h8.25c1.035 0 1.875-.84 1.875-1.875V15z" />
+            <path d="M8.25 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0zM15.75 6.75a.75.75 0 00-.75.75v11.25c0 .087.015.17.042.248a3 3 0 015.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 00-3.732-10.104 1.837 1.837 0 00-1.47-.725H15.75z" />
+            <path d="M19.5 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" />
+          </svg>
+          Don&apos;t Drive Here
+        </h1>
+        
+        <div className="flex items-center gap-2">
           <Link href="/case-study/fau" passHref legacyBehavior>
             <motion.a
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-500 transition-colors"
+              className="pill-button bg-gradient-to-r from-blue-600 to-blue-500 text-white text-sm font-medium hover:from-blue-700 hover:to-blue-600 transition-all shadow-md hover:shadow-lg"
             >
               FAU Case Study
             </motion.a>
@@ -442,63 +464,85 @@ export default function HomePage() {
 
           <AboutButton />
         </div>
-      </div>
+      </header>
 
       {/* MAIN CONTENT: MAP + UI ELEMENTS */}
-      <div className="relative flex-1">
-        {/* MAP CONTAINER - Pass showPoints instead of viewMode */}
-        <div className="w-full h-full rounded-xl overflow-hidden">
-          {/* Pass showPoints to RoadLineMap if it needs it, or remove prop if not used */}
+      <main className="relative flex-1 overflow-hidden">
+        {/* MAP CONTAINER */}
+        <div className="w-full h-full">
           <RoadLineMap onMapReady={handleMapReady} />
-          {/* Assuming RoadLineMap uses showPoints from context directly now */}
         </div>
+
+        {/* Mobile Toggle Button */}
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowPoints(!showPoints)}
+          className="absolute top-4 left-1/2 transform -translate-x-1/2 pill-button bg-gray-700/80 hover:bg-gray-600 text-sm font-medium sm:hidden flex items-center gap-2 z-20 shadow-lg"
+        >
+          {showPoints ? "Show Hotspots" : "Show Points"}
+        </motion.button>
 
         {/* Top Road Segments List */}
         <TopRoadSegments onSegmentClick={handleSegmentClick} />
 
         {/* ZOOM BUTTONS */}
-        <div className="absolute top-4 right-4 flex flex-col space-y-1 z-20">
+        <div className="absolute top-4 right-4 flex flex-col space-y-2 z-20">
           <motion.button
             type="button"
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="bg-white text-black rounded p-2 shadow hover:bg-gray-100"
+            className="glass-card w-10 h-10 flex items-center justify-center text-xl font-bold shadow-lg"
             onPointerDown={() => handlePointerDown("in")}
             onPointerUp={() => handlePointerUp("in")}
             onPointerLeave={stopAllZooming}
           >
-            +
+            <div className="absolute inset-0 flex items-center justify-center">+</div>
           </motion.button>
           <motion.button
             type="button"
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            className="bg-white text-black rounded p-2 shadow hover:bg-gray-100"
+            className="glass-card w-10 h-10 flex items-center justify-center text-xl font-bold shadow-lg"
             onPointerDown={() => handlePointerDown("out")}
             onPointerUp={() => handlePointerUp("out")}
             onPointerLeave={stopAllZooming}
           >
-            -
+            <div className="absolute inset-0 flex items-center justify-center">-</div>
           </motion.button>
         </div>
 
         {/* Loading Overlay */}
         {loading && (
-          <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-            <div className="bg-gray-800 p-6 rounded-lg max-w-sm text-center shadow-xl">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50"
+          >
+            <div className="glass-card p-6 max-w-sm w-full text-center shadow-xl">
+              <div className="flex justify-center mb-4">
+                <svg className="animate-spin h-10 w-10 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
               <h3 className="text-lg font-bold mb-3">Loading Data...</h3>
               <p className="text-sm text-gray-300">
-                {loadingMessage || "Please wait..."}
+                {loadingMessage || "Please wait while we fetch the latest accident data..."}
               </p>
             </div>
-          </div>
+          </motion.div>
         )}
-      </div>
+      </main>
 
       {/* FOOTER */}
-      <footer className="h-10 bg-gray-900 border-t border-gray-700 text-gray-400 text-center flex items-center justify-center text-sm z-20">
-        Created by: Chris Medrano, Gabriel Giani, Leonardo Silva &amp; William
-        West
+      <footer className="h-[var(--footer-height)] bg-gray-900/90 backdrop-blur-md border-t border-gray-700/50 text-gray-400 text-center flex items-center justify-center text-sm z-20">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span>Created by:</span>
+          <span className="font-medium text-gray-300">Chris Medrano, Gabriel Giani, Leonardo Silva &amp; William West</span>
+        </div>
       </footer>
     </div>
   );

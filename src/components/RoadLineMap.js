@@ -31,9 +31,9 @@ const DEFAULT_ZOOM = 7; // Slightly zoomed out default
 
 // --- Styling Function (from consolidated-playground) ---
 function getHeatColor(intensity) {
-  if (intensity < 0.33) return `rgba(0, 220, 0, 0.8)`; // Green
-  if (intensity < 0.66) return `rgba(255, 220, 0, 0.8)`; // Yellow
-  return `rgba(220, 0, 0, 0.8)`; // Red
+  if (intensity < 0.33) return `rgba(34, 197, 94, 0.8)`; // Green from var(--risk-low)
+  if (intensity < 0.66) return `rgba(234, 179, 8, 0.8)`; // Yellow from var(--risk-medium)
+  return `rgba(239, 68, 68, 0.8)`; // Red from var(--risk-high)
 }
 
 // Convert intensity (0-1) to rating (0-5)
@@ -89,8 +89,8 @@ function getRiskRatingHTML(rating) {
 const accidentPointStyle = new Style({
   image: new Circle({
     radius: 5,
-    fill: new Fill({ color: "rgba(255, 0, 0, 0.6)" }),
-    stroke: new Stroke({ color: "#ff0000", width: 1 }),
+    fill: new Fill({ color: "rgba(239, 68, 68, 0.7)" }),
+    stroke: new Stroke({ color: "#ffffff", width: 1 }),
   }),
 });
 
@@ -103,7 +103,7 @@ function getClusterStyle(feature) {
     image: new Circle({
       radius: radius,
       fill: new Fill({
-        color: size > 1 ? "rgba(255, 0, 0, 0.7)" : "rgba(255, 0, 0, 0.5)",
+        color: size > 1 ? "rgba(239, 68, 68, 0.8)" : "rgba(239, 68, 68, 0.7)",
       }),
       stroke: new Stroke({
         color: "#fff",
@@ -117,7 +117,7 @@ function getClusterStyle(feature) {
             fill: new Fill({
               color: "#fff",
             }),
-            font: "12px Arial",
+            font: "bold 12px Inter, Arial, sans-serif",
           })
         : null,
   });
@@ -136,14 +136,18 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
   tooltipElement.id = "road-tooltip";
   tooltipElement.className = "ol-tooltip hidden";
   tooltipElement.style.position = "absolute";
-  tooltipElement.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
-  tooltipElement.style.color = "white";
-  tooltipElement.style.padding = "8px";
-  tooltipElement.style.borderRadius = "4px";
+  tooltipElement.style.backgroundColor = "rgba(30, 41, 59, 0.9)";
+  tooltipElement.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.3)";
+  tooltipElement.style.color = "#f1f5f9";
+  tooltipElement.style.padding = "10px 15px";
+  tooltipElement.style.borderRadius = "6px";
+  tooltipElement.style.border = "1px solid rgba(255, 255, 255, 0.1)";
   tooltipElement.style.pointerEvents = "none";
   tooltipElement.style.zIndex = "1000";
   tooltipElement.style.fontSize = "12px";
-  tooltipElement.style.maxWidth = "300px";
+  tooltipElement.style.minWidth = "200px";
+  tooltipElement.style.maxWidth = "400px";
+  tooltipElement.style.wordBreak = "normal";
 
   if (!document.getElementById(tooltipElement.id)) {
     document.body.appendChild(tooltipElement);
@@ -154,6 +158,7 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
     id: overlayId,
     offset: [0, -15],
     positioning: "bottom-center",
+    stopEvent: false
   });
   map.addOverlay(tooltip);
 
@@ -194,15 +199,39 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
       };
 
       const riskRating = getRiskRating(properties.intensity);
+      
+      let riskColor;
+      if (riskRating < 2) {
+        riskColor = "#22c55e"; // Green for low risk
+      } else if (riskRating < 4) {
+        riskColor = "#eab308"; // Yellow for medium risk
+      } else {
+        riskColor = "#ef4444"; // Red for high risk
+      }
 
       tooltipElement.innerHTML = `
-        <div>
-          <strong>${properties.name}</strong>
-          ${properties.roadType ? `<div>Type: ${properties.roadType}</div>` : ""}
-          <div>Accidents: ${properties.count}</div>
-          <div>Length: ${(properties.length / 1000).toFixed(2)} km</div>
-          <div>Accidents/km: ${properties.accidentsPerKm.toFixed(2)}</div>
-          <div>Risk Rating: ${riskRating.toFixed(1)} out of 5</div>
+        <div style="margin-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); padding-bottom: 6px;">
+          <div style="font-weight: bold; font-size: 14px;">${properties.name}</div>
+        </div>
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Road Type:</div>
+          <div>${properties.roadType || 'N/A'}</div>
+        </div>
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Accidents:</div>
+          <div>${properties.count}</div>
+        </div>
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Length:</div>
+          <div>${(properties.length / 1000).toFixed(2)} km</div>
+        </div>
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Accidents/km:</div>
+          <div>${properties.accidentsPerKm.toFixed(2)}</div>
+        </div>
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Risk Rating:</div>
+          <div style="color: ${riskColor}; font-weight: bold">${riskRating.toFixed(1)}/5</div>
         </div>
       `;
 
@@ -218,7 +247,6 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
   });
 }
 
-// Add after the existing addRoadInfoInteraction function
 function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
   const overlayId = "accident-info-overlay";
   // Remove any existing overlay first
@@ -227,22 +255,23 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
     map.removeOverlay(existingOverlay);
   }
 
-  const tooltipElement =
-    document.getElementById("accident-tooltip") ||
-    document.createElement("div");
+  const tooltipElement = document.getElementById("accident-tooltip") || document.createElement("div");
   tooltipElement.id = "accident-tooltip";
   tooltipElement.className = "ol-tooltip hidden";
   tooltipElement.style.position = "absolute";
-  tooltipElement.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
-  tooltipElement.style.color = "white";
-  tooltipElement.style.padding = "8px";
-  tooltipElement.style.borderRadius = "4px";
+  tooltipElement.style.backgroundColor = "rgba(30, 41, 59, 0.9)";
+  tooltipElement.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.3)";
+  tooltipElement.style.color = "#f1f5f9";
+  tooltipElement.style.padding = "10px 15px";
+  tooltipElement.style.borderRadius = "6px";
+  tooltipElement.style.border = "1px solid rgba(255, 255, 255, 0.1)";
   tooltipElement.style.pointerEvents = "none";
   tooltipElement.style.zIndex = "1000";
   tooltipElement.style.fontSize = "12px";
-  tooltipElement.style.maxWidth = "300px";
+  tooltipElement.style.minWidth = "350px";
+  tooltipElement.style.maxWidth = "400px";
+  tooltipElement.style.wordBreak = "normal";
 
-  // Append to body if it's not already there
   if (!document.getElementById(tooltipElement.id)) {
     document.body.appendChild(tooltipElement);
   }
@@ -252,6 +281,7 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
     id: overlayId,
     offset: [0, -15],
     positioning: "bottom-center",
+    stopEvent: false
   });
   map.addOverlay(tooltip);
 
@@ -297,35 +327,71 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
         ? `${properties.crashtime.slice(0, 2)}:${properties.crashtime.slice(2)}`
         : "Unknown";
 
+      // Calculate severity level
+      const injuries = properties.cntofinj || 0;
+      const fatalities = properties.cntoffatl || 0;
+      let severityColor;
+      let severityText = "Minor";
+      
+      if (fatalities > 0) {
+        severityColor = "#ef4444"; // Red for fatal
+        severityText = "Fatal";
+      } else if (injuries > 2) {
+        severityColor = "#ef4444"; // Red for severe
+        severityText = "Severe";
+      } else if (injuries > 0) {
+        severityColor = "#eab308"; // Yellow for moderate
+        severityText = "Moderate";
+      } else {
+        severityColor = "#22c55e"; // Green for minor
+      }
+
       tooltipElement.innerHTML = `
-        <div>
-          <strong>${properties.onroadname || "Unknown Road"}</strong>
-          ${
-            properties.inroadname
-              ? `<div>at ${properties.inroadname}</div>`
-              : ""
-          }
-          <div>Date: ${date}</div>
-          <div>Time: ${time}</div>
-          <div>Injuries: ${properties.cntofinj || 0}</div>
-          <div>Fatalities: ${properties.cntoffatl || 0}</div>
-          ${
-            properties.weathcond
-              ? `<div>Weather: ${properties.weathcond}</div>`
-              : ""
-          }
-          ${
-            properties.lightcond
-              ? `<div>Lighting: ${properties.lightcond}</div>`
-              : ""
-          }
-          ${
-            properties.rdsurfcond
-              ? `<div>Road Surface: ${properties.rdsurfcond}</div>`
-              : ""
-          }
+        <div style="margin-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); padding-bottom: 6px;">
+          <div style="font-weight: bold; font-size: 14px;">${properties.onroadname || "Unknown Road"}</div>
         </div>
+        ${properties.inroadname ? `
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Intersection:</div>
+          <div>${properties.inroadname}</div>
+        </div>` : ''}
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Date:</div>
+          <div>${date}</div>
+        </div>
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Time:</div>
+          <div>${time}</div>
+        </div>
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Injuries:</div>
+          <div>${injuries}</div>
+        </div>
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Fatalities:</div>
+          <div>${fatalities}</div>
+        </div>
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Severity:</div>
+          <div style="color: ${severityColor}; font-weight: bold">${severityText}</div>
+        </div>
+        ${properties.weathcond ? `
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Weather:</div>
+          <div>${properties.weathcond}</div>
+        </div>` : ''}
+        ${properties.lightcond ? `
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Lighting:</div>
+          <div>${properties.lightcond}</div>
+        </div>` : ''}
+        ${properties.rdsurfcond ? `
+        <div style="display: flex; margin-bottom: 6px;">
+          <div style="width: 120px; color: #94a3b8;">Road Surface:</div>
+          <div>${properties.rdsurfcond}</div>
+        </div>` : ''}
       `;
+      
       tooltip.setPosition(evt.coordinate);
       tooltipElement.classList.remove("hidden");
     } else {
@@ -500,7 +566,9 @@ export default function RoadLineMap({ onMapReady }) {
               new Style({
                 stroke: new Stroke({
                   color: getHeatColor(segment.intensity),
-                  width: 3 + segment.intensity * 6,
+                  width: 4 + segment.intensity * 6, // Slightly thicker lines
+                  lineCap: 'round',
+                  lineJoin: 'round',
                 }),
               })
             );
