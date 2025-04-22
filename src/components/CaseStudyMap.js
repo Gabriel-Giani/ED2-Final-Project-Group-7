@@ -26,45 +26,23 @@ const accidentPointStyle = new Style({
 // --- Road Segment Styling (Adapted from HotspotMap.js) ---
 // Function to generate a color based on intensity (0-1)
 function getHeatColor(intensity) {
-  // Green-Yellow-Red gradient (adjusted thresholds)
-  if (intensity < 0.7) {
-    // Green (low intensity)
-    return `rgba(0, 220, 0, 0.8)`;
-  } else if (intensity < 0.9) {
-    // Yellow (medium intensity)
-    return `rgba(255, 220, 0, 0.8)`;
-  } else {
-    // Red (high intensity)
-    return `rgba(220, 0, 0, 0.8)`;
-  }
+  if (intensity < 0.33) return `rgba(255, 255, 0, 0.7)`; // Yellow
+  if (intensity < 0.66) return `rgba(255, 165, 0, 0.7)`; // Orange
+  return `rgba(255, 0, 0, 0.7)`; // Red
 }
 
 // Road segment style function based on intensity
 function getRoadSegmentStyle(feature) {
   const intensity = feature.get("intensity") || 0;
   const color = getHeatColor(intensity);
-  const width = 1.5 + intensity * 3; // Adjusted width formula
-  const outlineWidth = width + 2;
+  const width = 3 + intensity * 7; // Width increases with intensity (max 10)
 
-  // Outline style
-  const outlineStyle = new Style({
-    stroke: new Stroke({
-      color: "rgba(0, 0, 0, 0.7)",
-      width: outlineWidth,
-    }),
-    zIndex: 0.9,
-  });
-
-  // Main line style
-  const lineStyle = new Style({
+  return new Style({
     stroke: new Stroke({
       color: color,
       width: width,
     }),
-    zIndex: 1,
   });
-
-  return [outlineStyle, lineStyle]; // Return both styles
 }
 // --- End of Road Segment Styling ---
 

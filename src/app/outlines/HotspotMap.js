@@ -130,16 +130,16 @@ function getClusterStyle(feature) {
 
 // Function to generate a color based on intensity (0-1)
 function getHeatColor(intensity) {
-  // Green-Yellow-Red gradient
-  if (intensity < 0.7) {
-    // Green (low intensity)
-    return `rgba(0, 220, 0, 0.8)`;
-  } else if (intensity < 0.9) {
-    // Yellow (medium intensity)
-    return `rgba(255, 220, 0, 0.8)`;
+  // Yellow to orange to red gradient
+  if (intensity < 0.33) {
+    // Yellow (low intensity)
+    return `rgba(255, 255, 0, 0.7)`;
+  } else if (intensity < 0.66) {
+    // Orange (medium intensity)
+    return `rgba(255, 165, 0, 0.7)`;
   } else {
     // Red (high intensity)
-    return `rgba(220, 0, 0, 0.8)`;
+    return `rgba(255, 0, 0, 0.7)`;
   }
 }
 
@@ -148,33 +148,22 @@ function getRoadSegmentStyle(feature) {
   console.log("[StyleFunc] Called for feature:", feature.get("name")); // Log 1
   const intensity = feature.get("intensity") || 0;
   const color = getHeatColor(intensity);
-  const width = 1.5 + intensity * 3; // Adjusted width formula
-  const outlineWidth = width + 2; // Make outline slightly wider
+  // Slightly reduce base width to make markers more distinct
+  const width = 2 + intensity * 4;
 
-  // Style for the outline (black, wider, lower zIndex)
-  const outlineStyle = new Style({
-    stroke: new Stroke({
-      color: "rgba(0, 0, 0, 0.7)", // Black outline with some transparency
-      width: outlineWidth,
-    }),
-    zIndex: 0.9, // Ensure outline is below the main line
-  });
-
-  // Style for the main line segment (colored, original width, higher zIndex)
+  // Style for the main line segment
   const lineStyle = new Style({
     stroke: new Stroke({
       color: color,
       width: width,
     }),
-    zIndex: 1, // Ensure main line is above the outline
+    zIndex: 1, // Base zIndex for the line
   });
-
-  const baseStyles = [outlineStyle, lineStyle];
 
   // Get coordinates to place markers
   const geometry = feature.getGeometry();
   if (!geometry || typeof geometry.getCoordinates !== "function") {
-    return baseStyles; // Return outline + line if geometry is invalid
+    return lineStyle; // Return only line style if geometry is invalid
   }
   const coordinates = geometry.getCoordinates();
   console.log(`[StyleFunc] Coords length: ${coordinates?.length}`); // Log 2
@@ -198,15 +187,15 @@ function getRoadSegmentStyle(feature) {
       zIndex: endMarkerStyle.getZIndex(), // Use the marker zIndex
     });
 
-    // Return array of styles: outline + line + start marker + end marker
+    // Return array of styles: line + start marker + end marker
     console.log("[StyleFunc] Returning array with markers"); // Log 4
-    return [...baseStyles, startMarker, endMarker];
+    return [lineStyle, startMarker, endMarker];
   } else {
-    // If only one point or invalid coordinates, just return the outline + line styles
+    // If only one point or invalid coordinates, just return the line style
     console.log(
-      "[StyleFunc] Returning only outline + line styles (not enough coords or invalid geom)"
+      "[StyleFunc] Returning only line style (not enough coords or invalid geom)"
     ); // Log 4 (alternative)
-    return baseStyles;
+    return lineStyle;
   }
 }
 
