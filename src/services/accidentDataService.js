@@ -1032,7 +1032,7 @@ export const accidentDataService = {
       }
 
       // Apply limit BEFORE executing
-      query = query.limit(700000);
+      query = query.limit(200000);
 
       // Execute the query
       const { data, error } = await query;
@@ -1412,7 +1412,7 @@ export const accidentDataService = {
       }
 
       // Apply limit BEFORE executing
-      query = query.limit(700000);
+      query = query.limit(200000);
 
       // Execute query
       console.log("Executing Supabase accident query...");
