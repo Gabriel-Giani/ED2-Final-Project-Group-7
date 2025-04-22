@@ -87,6 +87,44 @@ const convertTimeToDbFormat = (timeString) => {
   return `${hours}${minutes}`;
 };
 
+// --- Length Calculation Helpers ---
+function deg2rad(deg) {
+  return deg * (Math.PI / 180);
+}
+
+function calculateGeoDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Radius of the Earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in km
+}
+
+function calculateLineLength(coordinates) {
+  let totalDistance = 0;
+  for (let i = 1; i < coordinates.length; i++) {
+    const [lon1, lat1] = coordinates[i - 1];
+    const [lon2, lat2] = coordinates[i];
+    // Ensure coordinates are numbers before calculation
+    if (
+      typeof lat1 === "number" &&
+      typeof lon1 === "number" &&
+      typeof lat2 === "number" &&
+      typeof lon2 === "number"
+    ) {
+      totalDistance += calculateGeoDistance(lat1, lon1, lat2, lon2);
+    }
+  }
+  return totalDistance * 1000; // Return distance in meters
+}
+// --- End Length Calculation Helpers ---
+
 // Simple cache implementation for data
 const cache = {
   data: new Map(),
@@ -1226,9 +1264,11 @@ export const accidentDataService = {
       (group) => group.coordinates.length >= 3 && group.count > 1
     );
 
-    const roadSegments = filteredRoadGroups.map((group, index) => {
+    const roadSegmentsWithLength = filteredRoadGroups.map((group, index) => {
       // Sort coordinates to form a reasonable line
       const sortedCoordinates = this.sortCoordinatesForLine(group.coordinates);
+      // Calculate length using the helper function
+      const length = calculateLineLength(sortedCoordinates); // Length in meters
 
       // Calculate intensity based on accident count
       const maxGroupCount = Math.max(
@@ -1245,8 +1285,14 @@ export const accidentDataService = {
         coordinates: sortedCoordinates,
         count: group.count,
         intensity: intensity,
+        length: length, // Add length to the object
       };
     });
+
+    // Filter segments based on length (>= 1km)
+    const roadSegments = roadSegmentsWithLength.filter(
+      (segment) => segment.length >= 1000
+    );
 
     return { hotspots, roadSegments };
   },
