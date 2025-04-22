@@ -85,7 +85,7 @@ export default function FiltersButton() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-[47px] left-0 mt-2 bg-gray-100 text-gray-800 rounded-xl shadow-lg p-4 z-[9999]"
+            className="absolute top-[47px] left-0 mt-2 bg-[#1e2330] text-gray-200 rounded-xl shadow-lg p-4 z-[9999]"
             style={{ width: "500px", maxHeight: "85vh", overflowY: "auto" }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -94,7 +94,7 @@ export default function FiltersButton() {
               className="absolute -top-2 left-8 w-0 h-0
               border-l-[8px] border-r-[8px] border-b-[8px] 
               border-l-transparent border-r-transparent
-              border-b-gray-100"
+              border-b-[#1e2330]"
             />
 
             {/* Filter content */}
@@ -109,7 +109,7 @@ export default function FiltersButton() {
                 type="button"
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="bg-red-500 text-white flex-1 py-2 rounded hover:bg-red-600"
+                className="bg-red-600 text-white flex-1 py-2 rounded hover:bg-red-700"
                 onClick={handleReset}
               >
                 Reset All
@@ -119,7 +119,7 @@ export default function FiltersButton() {
                 type="button"
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="bg-green-500 text-white flex-1 py-2 rounded hover:bg-green-600 disabled:bg-gray-400"
+                className="bg-blue-600 text-white flex-1 py-2 rounded hover:bg-blue-700 disabled:bg-gray-600 disabled:text-gray-400"
                 onClick={handleApply}
                 disabled={isLoading}
               >
