@@ -132,10 +132,10 @@ export default function FauCaseStudyPage() {
         <p className="mb-6 text-lg text-center text-gray-700 dark:text-gray-300">
           This section examines a known traffic accident hotspot located at the
           intersection of Glades Road and the I-95 interchange in Boca Raton,
-          Florida, near Florida Atlantic University (FAU). Data visualized below
-          includes individual accidents (red dots) from the analysis period and
-          aggregated road segment hotspots (colored lines, toggleable)
-          calculated by the service for the same period within Boca Raton.
+          Florida, near Florida Atlantic University (FAU). The visualization
+          shows the accident hotspots from August 1st, 2010 to September 31st,
+          2010. This is a 2 month period where the traffic volume is high due to
+          the start of the school year.
         </p>
 
         <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden mb-8">

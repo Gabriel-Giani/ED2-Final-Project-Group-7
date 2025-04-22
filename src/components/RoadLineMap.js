@@ -31,9 +31,17 @@ const DEFAULT_ZOOM = 7; // Slightly zoomed out default
 
 // --- Styling Function (from consolidated-playground) ---
 function getHeatColor(intensity) {
-  if (intensity < 0.33) return `rgba(0, 220, 0, 0.8)`; // Green
-  if (intensity < 0.66) return `rgba(255, 220, 0, 0.8)`; // Yellow
-  return `rgba(220, 0, 0, 0.8)`; // Red
+  // Green-Yellow-Red gradient (adjusted thresholds)
+  if (intensity < 0.7) {
+    // Green (low intensity)
+    return `rgba(0, 220, 0, 0.8)`;
+  } else if (intensity < 0.9) {
+    // Yellow (medium intensity)
+    return `rgba(255, 220, 0, 0.8)`;
+  } else {
+    // Red (high intensity)
+    return `rgba(220, 0, 0, 0.8)`;
+  }
 }
 
 // Convert intensity (0-1) to rating (0-5)
@@ -75,7 +83,7 @@ function getRiskRatingHTML(rating) {
       </div>
       <div class="flex gap-1">
         ${fullSymbolSVG.repeat(fullSymbols)}
-        ${hasHalfSymbol ? halfSymbolSVG : ''}
+        ${hasHalfSymbol ? halfSymbolSVG : ""}
         ${emptySymbolSVG.repeat(emptySymbols)}
       </div>
       <div class="text-xs text-gray-300">
@@ -132,7 +140,8 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
     map.removeOverlay(existingOverlay);
   }
 
-  const tooltipElement = document.getElementById("road-tooltip") || document.createElement("div");
+  const tooltipElement =
+    document.getElementById("road-tooltip") || document.createElement("div");
   tooltipElement.id = "road-tooltip";
   tooltipElement.className = "ol-tooltip hidden";
   tooltipElement.style.position = "absolute";
@@ -198,7 +207,9 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
       tooltipElement.innerHTML = `
         <div>
           <strong>${properties.name}</strong>
-          ${properties.roadType ? `<div>Type: ${properties.roadType}</div>` : ""}
+          ${
+            properties.roadType ? `<div>Type: ${properties.roadType}</div>` : ""
+          }
           <div>Accidents: ${properties.count}</div>
           <div>Length: ${(properties.length / 1000).toFixed(2)} km</div>
           <div>Accidents/km: ${properties.accidentsPerKm.toFixed(2)}</div>
@@ -496,14 +507,29 @@ export default function RoadLineMap({ onMapReady }) {
               accidentsPerKm: segment.accidentsPerKm,
             });
 
-            feature.setStyle(
-              new Style({
-                stroke: new Stroke({
-                  color: getHeatColor(segment.intensity),
-                  width: 3 + segment.intensity * 6,
-                }),
-              })
-            );
+            const intensity = segment.intensity;
+            const color = getHeatColor(intensity);
+            const width = 1.5 + intensity * 3;
+            const outlineWidth = width + 2;
+
+            const outlineStyle = new Style({
+              stroke: new Stroke({
+                color: "rgba(0, 0, 0, 0.7)",
+                width: outlineWidth,
+              }),
+              zIndex: 0.9,
+            });
+
+            const lineStyle = new Style({
+              stroke: new Stroke({
+                color: color,
+                width: width,
+              }),
+              zIndex: 1,
+            });
+
+            // Apply both styles to the feature
+            feature.setStyle([outlineStyle, lineStyle]);
             return feature;
           }
           return null;

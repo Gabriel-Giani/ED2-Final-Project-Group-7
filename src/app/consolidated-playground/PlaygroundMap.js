@@ -32,12 +32,13 @@ const MAX_ZOOM = 19;
 const DEFAULT_ZOOM = 9;
 
 function getHeatColor(intensity) {
-  if (intensity < 0.33) {
-    return `rgba(0, 220, 0, 0.8)`;
-  } else if (intensity < 0.66) {
-    return `rgba(255, 220, 0, 0.8)`;
+  // Green-Yellow-Red gradient (adjusted thresholds)
+  if (intensity < 0.7) {
+    return `rgba(0, 220, 0, 0.8)`; // Green
+  } else if (intensity < 0.9) {
+    return `rgba(255, 220, 0, 0.8)`; // Yellow
   } else {
-    return `rgba(220, 0, 0, 0.8)`;
+    return `rgba(220, 0, 0, 0.8)`; // Red
   }
 }
 
@@ -425,14 +426,29 @@ export default function PlaygroundMap({
             length: segment.length,
             accidentsPerKm: segment.accidentsPerKm,
           });
-          feature.setStyle(
-            new Style({
-              stroke: new Stroke({
-                color: getHeatColor(segment.intensity),
-                width: 3 + segment.intensity * 6,
-              }),
-            })
-          );
+
+          const intensity = segment.intensity;
+          const color = getHeatColor(intensity);
+          const width = 1.5 + intensity * 3;
+          const outlineWidth = width + 2;
+
+          const outlineStyle = new Style({
+            stroke: new Stroke({
+              color: "rgba(0, 0, 0, 0.7)",
+              width: outlineWidth,
+            }),
+            zIndex: 0.9,
+          });
+
+          const lineStyle = new Style({
+            stroke: new Stroke({
+              color: color,
+              width: width,
+            }),
+            zIndex: 1,
+          });
+
+          feature.setStyle([outlineStyle, lineStyle]);
           source.addFeature(feature);
         }
       });

@@ -1223,7 +1223,7 @@ export const accidentDataService = {
 
     // Process road segments
     const filteredRoadGroups = Array.from(roadGroups.values()).filter(
-      (group) => group.coordinates.length >= 3
+      (group) => group.coordinates.length >= 3 && group.count > 1
     );
 
     const roadSegments = filteredRoadGroups.map((group, index) => {
