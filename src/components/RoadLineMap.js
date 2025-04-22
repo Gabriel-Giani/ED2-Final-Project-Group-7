@@ -31,9 +31,9 @@ const DEFAULT_ZOOM = 7; // Slightly zoomed out default
 
 // --- Styling Function (from consolidated-playground) ---
 function getHeatColor(intensity) {
-  if (intensity < 0.33) return `rgba(34, 197, 94, 0.8)`; // Green from var(--risk-low)
-  if (intensity < 0.66) return `rgba(234, 179, 8, 0.8)`; // Yellow from var(--risk-medium)
-  return `rgba(239, 68, 68, 0.8)`; // Red from var(--risk-high)
+  if (intensity < 0.33) return `rgba(0, 220, 0, 0.8)`; // Green
+  if (intensity < 0.66) return `rgba(255, 220, 0, 0.8)`; // Yellow
+  return `rgba(220, 0, 0, 0.8)`; // Red
 }
 
 // Convert intensity (0-1) to rating (0-5)
@@ -145,7 +145,7 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
   tooltipElement.style.pointerEvents = "none";
   tooltipElement.style.zIndex = "1000";
   tooltipElement.style.fontSize = "12px";
-  tooltipElement.style.minWidth = "200px";
+  tooltipElement.style.minWidth = "350px";
   tooltipElement.style.maxWidth = "400px";
   tooltipElement.style.wordBreak = "normal";
 
@@ -566,9 +566,7 @@ export default function RoadLineMap({ onMapReady }) {
               new Style({
                 stroke: new Stroke({
                   color: getHeatColor(segment.intensity),
-                  width: 4 + segment.intensity * 6, // Slightly thicker lines
-                  lineCap: 'round',
-                  lineJoin: 'round',
+                  width: 3 + segment.intensity * 6,
                 }),
               })
             );
