@@ -87,7 +87,3 @@ This command starts the Next.js development server (using Turbopack for speed) o
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## Contributing
-
-(Optional: Add guidelines for contributing to the project if applicable).
