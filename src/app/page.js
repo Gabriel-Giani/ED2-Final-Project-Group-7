@@ -28,7 +28,6 @@ function calculateLonLatBoundingBox(coordinates) {
     maxLon = Math.max(maxLon, lon);
     maxLat = Math.max(maxLat, lat);
   });
-  // Return extent in [minLon, minLat, maxLon, maxLat] format
   return [minLon, minLat, maxLon, maxLat];
 }
 
@@ -158,23 +157,17 @@ export default function HomePage() {
         featuresToShow = geojsonData.features.filter(
           (feature) => feature.properties.NAME === regionName
         );
-        console.log(
-          `Filtering to show only county from filters: ${regionName}`
-        );
       } else if (filterRegion === "state") {
         // Show all counties for state-level view
         featuresToShow = geojsonData.features;
-        console.log("Showing all counties for state-level view");
       } else if (filterRegion === "city" && regionName) {
         // For city view, we might want to show the containing county
         // This would require knowing which county contains each city
         // For now, don't show county boundaries for city-specific views
         featuresToShow = [];
-        console.log("City view active, not showing county boundaries");
       } else {
         // Default: show all counties if no specific filter is set
         featuresToShow = geojsonData.features;
-        console.log("No specific filter set, showing all counties");
       }
 
       // Create a filtered GeoJSON
@@ -187,7 +180,7 @@ export default function HomePage() {
       const format = new GeoJSON();
       const features = format.readFeatures(filteredGeoJSON, {
         featureProjection: "EPSG:3857", // Web Mercator projection used by OpenLayers
-        dataProjection: "EPSG:4326", // Assuming the GeoJSON is in WGS84 coordinates
+        dataProjection: "EPSG:4326", // WGS84 coordinates for GeoJSON
       });
 
       // Clear existing features and add filtered ones
@@ -242,7 +235,7 @@ export default function HomePage() {
       const format = new GeoJSON();
       const features = format.readFeatures(geojsonData, {
         featureProjection: "EPSG:3857", // Web Mercator projection used by OpenLayers
-        dataProjection: "EPSG:4326", // Assuming the GeoJSON is in WGS84 coordinates
+        dataProjection: "EPSG:4326", // WGS84 coordinates for GeoJSON
       });
 
       console.log("Parsed features count:", features.length);
@@ -261,17 +254,6 @@ export default function HomePage() {
         console.log(
           `Found ${filteredFeatures.length} features matching city name: ${regionName}`
         );
-        // } else if (filterRegion === "county" && regionName) {
-        //   // If a county is selected, show all cities in that county
-        //   console.log("Filtering for cities in county:", regionName);
-        //   filteredFeatures = features.filter((feature) => {
-        //     const county = feature.get("COUNTY") || "";
-        //     const matches = county.toLowerCase() === regionName.toLowerCase();
-        //     return matches;
-        //   });
-        //   console.log(
-        //     `Found ${filteredFeatures.length} features in county: ${regionName}`
-        //   );
       } else if (filterRegion === "state") {
         // For state-level view, don't show any cities to avoid clutter
         console.log("State-level view, not showing city boundaries");
@@ -385,25 +367,25 @@ export default function HomePage() {
     if (!view || !segment?.geometry?.coordinates) return;
 
     try {
-      // 1. Calculate the bounding box (extent) of the segment in LonLat
+      // Calculate bounding box (extent) of the segment in LonLat
       const lonLatExtent = calculateLonLatBoundingBox(
         segment.geometry.coordinates
       );
       if (!lonLatExtent) return;
 
-      // 2. Transform the extent to the map's projection (likely EPSG:3857)
-      const mapProjection = view.getProjection(); // Get map projection
+      // Transform extent to the map's projection (likely EPSG:3857)
+      const mapProjection = view.getProjection();
       const transformedExtent = transformExtent(
         lonLatExtent,
-        "EPSG:4326",
-        mapProjection
+        "EPSG:4326", // Input is WGS84
+        mapProjection // Output is map projection
       );
 
-      // 3. Zoom the map to fit this extent with some padding
+      // Zoom the map to fit this extent
       view.fit(transformedExtent, {
-        padding: [50, 50, 50, 50], // Add padding around the segment
-        duration: 1000, // Animation duration
-        maxZoom: 16, // Optional: Limit max zoom level
+        padding: [50, 50, 50, 50],
+        duration: 1000,
+        maxZoom: 16,
       });
     } catch (error) {
       console.error("Error zooming to segment:", error);
@@ -426,31 +408,50 @@ export default function HomePage() {
           >
             {showPoints ? (
               <>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="w-4 h-4"
+                >
                   <path d="M5.25 3A2.25 2.25 0 003 5.25v9.5A2.25 2.25 0 005.25 17h9.5A2.25 2.25 0 0017 14.75v-9.5A2.25 2.25 0 0014.75 3h-9.5z" />
                 </svg>
                 Show Hotspots
               </>
             ) : (
               <>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                  <path fillRule="evenodd" d="M8.5 3.528v4.644c0 .729-.29 1.428-.805 1.944l-1.217 1.216a8.75 8.75 0 013.55.621l.502.201a7.25 7.25 0 004.178.365l-2.403-2.403a2.75 2.75 0 01-.805-1.944V3.528a40.205 40.205 0 00-3 0zm4.5.084l.19.015a.75.75 0 10.12-1.495 41.364 41.364 0 00-6.62 0 .75.75 0 00.12 1.495L7 3.612v4.56c0 .331-.132.649-.366.883L2.6 13.09c-1.496 1.496-.817 4.15 1.403 4.475C5.961 17.852 7.963 18 10 18s4.039-.148 5.997-.436c2.22-.325 2.9-2.979 1.403-4.475l-4.034-4.034A1.25 1.25 0 0113 8.172v-4.56z" clipRule="evenodd" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="w-4 h-4"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.5 3.528v4.644c0 .729-.29 1.428-.805 1.944l-1.217 1.216a8.75 8.75 0 013.55.621l.502.201a7.25 7.25 0 004.178.365l-2.403-2.403a2.75 2.75 0 01-.805-1.944V3.528a40.205 40.205 0 00-3 0zm4.5.084l.19.015a.75.75 0 10.12-1.495 41.364 41.364 0 00-6.62 0 .75.75 0 00.12 1.495L7 3.612v4.56c0 .331-.132.649-.366.883L2.6 13.09c-1.496 1.496-.817 4.15 1.403 4.475C5.961 17.852 7.963 18 10 18s4.039-.148 5.997-.436c2.22-.325 2.9-2.979 1.403-4.475l-4.034-4.034A1.25 1.25 0 0113 8.172v-4.56z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 Show Points
               </>
             )}
           </motion.button>
         </div>
-        
+
         <h1 className="text-xl font-bold tracking-tight absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-red-500">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="w-6 h-6 text-red-500"
+          >
             <path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25zM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h8.25c1.035 0 1.875-.84 1.875-1.875V15z" />
             <path d="M8.25 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0zM15.75 6.75a.75.75 0 00-.75.75v11.25c0 .087.015.17.042.248a3 3 0 015.958.464c.853-.175 1.522-.935 1.464-1.883a18.659 18.659 0 00-3.732-10.104 1.837 1.837 0 00-1.47-.725H15.75z" />
             <path d="M19.5 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" />
           </svg>
           Don&apos;t Drive Here
         </h1>
-        
+
         <div className="flex items-center gap-2">
           <Link href="/case-study/fau" passHref legacyBehavior>
             <motion.a
@@ -498,7 +499,9 @@ export default function HomePage() {
             onPointerUp={() => handlePointerUp("in")}
             onPointerLeave={stopAllZooming}
           >
-            <div className="absolute inset-0 flex items-center justify-center">+</div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              +
+            </div>
           </motion.button>
           <motion.button
             type="button"
@@ -509,13 +512,15 @@ export default function HomePage() {
             onPointerUp={() => handlePointerUp("out")}
             onPointerLeave={stopAllZooming}
           >
-            <div className="absolute inset-0 flex items-center justify-center">-</div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              -
+            </div>
           </motion.button>
         </div>
 
         {/* Loading Overlay */}
         {loading && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -523,14 +528,31 @@ export default function HomePage() {
           >
             <div className="glass-card p-6 max-w-sm w-full text-center shadow-xl">
               <div className="flex justify-center mb-4">
-                <svg className="animate-spin h-10 w-10 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin h-10 w-10 text-blue-500"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
               </div>
               <h3 className="text-lg font-bold mb-3">Loading Data...</h3>
               <p className="text-sm text-gray-300">
-                {loadingMessage || "Please wait while we fetch the latest accident data..."}
+                {loadingMessage ||
+                  "Please wait while we fetch the latest accident data..."}
               </p>
             </div>
           </motion.div>
@@ -541,7 +563,9 @@ export default function HomePage() {
       <footer className="h-[var(--footer-height)] bg-gray-900/90 backdrop-blur-md border-t border-gray-700/50 text-gray-400 text-center flex items-center justify-center text-sm z-20">
         <div className="flex items-center gap-1 sm:gap-2">
           <span>Created by:</span>
-          <span className="font-medium text-gray-300">Chris Medrano, Gabriel Giani, Leonardo Silva &amp; William West</span>
+          <span className="font-medium text-gray-300">
+            Chris Medrano, Gabriel Giani, Leonardo Silva &amp; William West
+          </span>
         </div>
       </footer>
     </div>

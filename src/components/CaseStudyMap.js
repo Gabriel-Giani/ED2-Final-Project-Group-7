@@ -62,13 +62,9 @@ export default function CaseStudyMap({
 
   // Update accident features when 'accidents' prop changes
   useEffect(() => {
-    if (!accidentsSource.current) return; // Don't run if source doesn't exist
+    if (!accidentsSource.current) return;
 
-    console.log(
-      "Updating accidents on case study map:",
-      accidents?.length || 0
-    );
-    accidentsSource.current.clear(); // Clear previous points
+    accidentsSource.current.clear();
 
     if (accidents && accidents.length > 0) {
       const features = accidents
@@ -86,10 +82,8 @@ export default function CaseStudyMap({
       if (features.length > 0) {
         accidentsSource.current.addFeatures(features);
       }
-      console.log(`Added ${features.length} accident features to the map.`);
     }
 
-    // Trigger a re-render of the map if it exists
     if (mapRef.current) {
       mapRef.current.render();
     }
@@ -98,10 +92,6 @@ export default function CaseStudyMap({
   // Update road segment features
   useEffect(() => {
     if (!roadSegmentsSource.current) return;
-    console.log(
-      "Updating road segments on case study map:",
-      roadSegments?.length || 0
-    );
     roadSegmentsSource.current.clear();
 
     if (
@@ -111,19 +101,17 @@ export default function CaseStudyMap({
     ) {
       const features = roadSegments
         .map((segment) => {
-          // **Corrected validation to check segment.geometry.coordinates**
           if (
             !segment ||
-            !segment.geometry || // Check if geometry exists
-            !segment.geometry.coordinates || // Check if coordinates exist within geometry
+            !segment.geometry ||
+            !segment.geometry.coordinates ||
             !Array.isArray(segment.geometry.coordinates) ||
             segment.geometry.coordinates.length < 2
           ) {
             console.warn("Skipping invalid road segment structure:", segment);
-            return null; // Skip this invalid segment
+            return null;
           }
           try {
-            // **Corrected mapping to use segment.geometry.coordinates**
             const coordinates = segment.geometry.coordinates.map((coord) => {
               if (
                 !Array.isArray(coord) ||
@@ -154,19 +142,14 @@ export default function CaseStudyMap({
               segment,
               error
             );
-            return null; // Skip segment if coordinate processing fails
+            return null;
           }
         })
-        .filter(Boolean); // Filter out any nulls from skipped segments
+        .filter(Boolean);
 
       if (features.length > 0) {
         roadSegmentsSource.current.addFeatures(features);
       }
-      console.log(`Added ${features.length} valid road segment features.`);
-    } else {
-      console.log(
-        "No valid road segments received or segments array is empty."
-      );
     }
     mapRef.current?.render();
   }, [roadSegments]);
@@ -174,7 +157,6 @@ export default function CaseStudyMap({
   // Update road segment layer visibility
   useEffect(() => {
     if (roadSegmentsLayerRef.current) {
-      console.log("Setting road segment visibility to:", showRoadLines);
       roadSegmentsLayerRef.current.setVisible(showRoadLines);
     }
   }, [showRoadLines]);

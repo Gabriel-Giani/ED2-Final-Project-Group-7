@@ -94,7 +94,6 @@ const cache = {
     // Default TTL: 5 minutes
     const expiry = Date.now() + ttl;
     cache.data.set(key, { value, expiry });
-    console.log(`Cached data for key: ${key}`);
   },
   get: (key) => {
     const item = cache.data.get(key);
@@ -102,16 +101,13 @@ const cache = {
 
     if (Date.now() > item.expiry) {
       cache.data.delete(key);
-      console.log(`Cache expired for key: ${key}`);
       return null;
     }
 
-    console.log(`Cache hit for key: ${key}`);
     return item.value;
   },
   clear: () => {
     cache.data.clear();
-    console.log("Cache cleared");
   },
 };
 
@@ -1277,7 +1273,6 @@ export const accidentDataService = {
    * @returns {Promise<Array>} Array of accident objects
    */
   async getAccidents(filters) {
-    console.log("Fetching accidents with filters:", filters);
     const selectColumns = `
       crashnum, crashdate, crashtime, latitude, longitude,
       onroadname, inroadname, townname, dotcounty, highestinj,
@@ -1295,10 +1290,6 @@ export const accidentDataService = {
         if (countyCodeStr) {
           const countyCodeInt = parseInt(countyCodeStr, 10);
           if (!isNaN(countyCodeInt)) {
-            console.log(
-              `Applying ACCIDENT filter: dotcounty EQ ${countyCodeInt} (Name: ${filters.regionName})`
-            );
-            // Use the parsed integer code for the filter
             query = query.eq("dotcounty", countyCodeInt);
           } else {
             console.warn(
@@ -1311,9 +1302,6 @@ export const accidentDataService = {
           );
         }
       } else if (filters?.filterRegion === "city" && filters?.regionName) {
-        console.log(
-          `Applying ACCIDENT filter: townname ILIKE ${filters.regionName}`
-        );
         query = query.ilike("townname", `%${filters.regionName}%`);
       }
 
@@ -1415,7 +1403,6 @@ export const accidentDataService = {
       query = query.limit(300000);
 
       // Execute query
-      console.log("Executing Supabase accident query...");
       const { data, error } = await query;
 
       if (error) {
@@ -1423,7 +1410,6 @@ export const accidentDataService = {
         throw error;
       }
 
-      console.log(`Fetched ${data?.length || 0} accidents from database.`);
       return data || [];
     } catch (error) {
       console.error("Error fetching accidents:", error);

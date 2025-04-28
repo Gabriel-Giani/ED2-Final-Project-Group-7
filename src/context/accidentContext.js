@@ -1,6 +1,5 @@
 "use client";
 
-// src/context/accidentContext.js
 import React, {
   createContext,
   useContext,
@@ -13,11 +12,10 @@ import { usePathname } from "next/navigation";
 import { accidentDataService } from "@/services/accidentDataService";
 import { roadSegmentService } from "@/services/roadSegmentService";
 
-// Initial state
 export const initialState = {
   // Data
-  accidents: [], // Keep this for individual points view
-  roadLineSegments: [], // Keep for road lines
+  accidents: [],
+  roadLineSegments: [],
 
   // Filters
   filters: {
@@ -58,7 +56,6 @@ export const initialState = {
   cities: [],
 };
 
-// Action types
 const actionTypes = {
   SET_LOADING: "SET_LOADING",
   SET_LOADING_MESSAGE: "SET_LOADING_MESSAGE",
@@ -70,7 +67,6 @@ const actionTypes = {
   SET_SHOW_POINTS: "SET_SHOW_POINTS",
 };
 
-// Reducer
 function reducer(state, action) {
   switch (action.type) {
     case actionTypes.SET_LOADING:
@@ -94,27 +90,19 @@ function reducer(state, action) {
   }
 }
 
-// Context
 const AccidentContext = createContext();
 
-// Provider Component
 export function AccidentProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const pathname = usePathname();
 
-  // Load data based on filters
   const loadData = useCallback(async () => {
     if (pathname === "/case-study/fau") {
-      console.log("On case study page, skipping general data load.");
       dispatch({ type: actionTypes.SET_LOADING, payload: false });
       dispatch({ type: actionTypes.SET_LOADING_MESSAGE, payload: "" });
       return;
     }
 
-    console.log(
-      "AccidentProvider: Loading data based on filters:",
-      state.filters
-    );
     try {
       dispatch({ type: actionTypes.SET_LOADING, payload: true });
       dispatch({
@@ -122,7 +110,6 @@ export function AccidentProvider({ children }) {
         payload: "Loading road data...",
       });
 
-      // Load road line segments
       const segments = await roadSegmentService.getMajorRoadLineSegments(
         state.filters,
         (progress) => {
@@ -140,7 +127,6 @@ export function AccidentProvider({ children }) {
         payload: segments || [],
       });
 
-      // Load individual accidents if needed
       dispatch({
         type: actionTypes.SET_LOADING_MESSAGE,
         payload: "Loading accident data...",
@@ -156,42 +142,29 @@ export function AccidentProvider({ children }) {
     }
   }, [state.filters, pathname]);
 
-  // Load main accident/segment data when filters change OR pathname changes (to re-enable loading when navigating away from case study)
   useEffect(() => {
     if (pathname !== "/case-study/fau") {
-      console.log(
-        "Pathname is not case study, proceeding with loadData trigger."
-      );
       loadData();
     }
   }, [loadData, pathname]);
 
-  // Fetch initial filter options (counties, cities) on mount
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
-        console.log("Clearing cache before fetching filter options...");
         accidentDataService.clearCache();
 
-        console.log("Fetching initial filter options (counties, cities)...");
-        // Fetch counties using getRegionOptions
         const counties = await accidentDataService.getRegionOptions("county");
         if (counties && counties.length > 0) {
           dispatch({ type: actionTypes.SET_COUNTIES, payload: counties });
-          console.log(`Fetched ${counties.length} unique counties.`);
         } else {
           console.warn("No counties returned from service.");
           dispatch({ type: actionTypes.SET_COUNTIES, payload: [] });
         }
 
-        // Fetch cities using getRegionOptions
         const cities = await accidentDataService.getRegionOptions("city");
-
-        console.log("Raw cities received from service:", cities);
 
         if (cities && cities.length > 0) {
           dispatch({ type: actionTypes.SET_CITIES, payload: cities });
-          console.log(`Fetched ${cities.length} unique cities.`);
         } else {
           console.warn("No cities returned from service.");
           dispatch({ type: actionTypes.SET_CITIES, payload: [] });
@@ -225,7 +198,6 @@ export function AccidentProvider({ children }) {
   );
 }
 
-// Hook
 export function useAccidentContext() {
   const context = useContext(AccidentContext);
   if (!context) {

@@ -1,12 +1,7 @@
-// filepath: /src/supabaseClient.js
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-// Log Supabase configuration for debugging (without exposing full keys)
-console.log("Supabase URL configured:", supabaseUrl ? "Yes" : "No");
-console.log("Supabase Anon Key configured:", supabaseAnonKey ? "Yes" : "No");
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error("Supabase environment variables are missing!");
@@ -19,7 +14,6 @@ const cache = {
     // Default TTL: 5 minutes
     const expiry = Date.now() + ttl;
     cache.data.set(key, { value, expiry });
-    console.log(`Cached data for key: ${key}`);
   },
   get: (key) => {
     const item = cache.data.get(key);
@@ -27,16 +21,13 @@ const cache = {
 
     if (Date.now() > item.expiry) {
       cache.data.delete(key);
-      console.log(`Cache expired for key: ${key}`);
       return null;
     }
 
-    console.log(`Cache hit for key: ${key}`);
     return item.value;
   },
   clear: () => {
     cache.data.clear();
-    console.log("Cache cleared");
   },
 };
 
@@ -48,18 +39,12 @@ const customFetch = async (url, options) => {
 
   while (retries < maxRetries) {
     try {
-      console.log(
-        `Supabase request to: ${url.split("?")[0]} (attempt ${
-          retries + 1
-        }/${maxRetries})`
-      );
       const response = await fetch(url, options);
 
       if (!response.ok) {
         console.error(
           `Supabase fetch error: ${response.status} ${response.statusText}`
         );
-        // Log response details for debugging
         try {
           const errorData = await response.clone().text();
           console.error("Error response:", errorData);
@@ -70,7 +55,6 @@ const customFetch = async (url, options) => {
         // For 429 (Too Many Requests), wait longer before retrying
         if (response.status === 429) {
           const waitTime = Math.pow(2, retries) * 1000; // Exponential backoff
-          console.log(`Rate limited, waiting ${waitTime}ms before retry`);
           await new Promise((resolve) => setTimeout(resolve, waitTime));
           retries++;
           continue;
@@ -86,7 +70,6 @@ const customFetch = async (url, options) => {
 
       if (retries < maxRetries - 1) {
         const waitTime = Math.pow(2, retries) * 1000; // Exponential backoff
-        console.log(`Waiting ${waitTime}ms before retry`);
         await new Promise((resolve) => setTimeout(resolve, waitTime));
         retries++;
       } else {
@@ -128,17 +111,12 @@ export async function batchFetchData(tableName, options = {}) {
     if (cachedData) return cachedData;
   }
 
-  console.log(
-    `Batch fetching data from ${tableName} with page size ${pageSize}, max pages ${maxPages}`
-  );
-
   let allData = [];
   let page = 0;
   let hasMore = true;
 
   try {
     while (hasMore && page < maxPages) {
-      // Build query
       let query = supabase
         .from(tableName)
         .select(select)
@@ -171,13 +149,11 @@ export async function batchFetchData(tableName, options = {}) {
         } else if (operator === "not") {
           query = query.not(column, value);
         } else {
-          // Default to equality if operator not recognized
           console.warn(`Unknown operator '${operator}', defaulting to 'eq'`);
           query = query.eq(column, value);
         }
       });
 
-      // Apply ordering
       if (orderBy) {
         query = query.order(orderBy.column, { ascending: orderBy.ascending });
       }
@@ -190,13 +166,9 @@ export async function batchFetchData(tableName, options = {}) {
       }
 
       if (data && data.length > 0) {
-        console.log(
-          `Received ${data.length} rows for batch ${page} from ${tableName}`
-        );
         allData = [...allData, ...data];
         page++;
 
-        // Check if we have more data
         hasMore = data.length === pageSize;
       } else {
         hasMore = false;
@@ -208,9 +180,6 @@ export async function batchFetchData(tableName, options = {}) {
       }
     }
 
-    console.log(`Total rows fetched from ${tableName}: ${allData.length}`);
-
-    // Cache the result
     if (cacheKey) {
       cache.set(cacheKey, allData, cacheTTL);
     }
@@ -229,9 +198,6 @@ export async function getUniqueColumnValues(tableName, column, options = {}) {
   if (cachedData) return cachedData;
 
   try {
-    console.log(`Fetching unique values for ${column} from ${tableName}`);
-
-    // Use a more efficient approach - fetch just the column we need
     const { data, error } = await supabase
       .from(tableName)
       .select(column)
@@ -243,7 +209,6 @@ export async function getUniqueColumnValues(tableName, column, options = {}) {
       throw error;
     }
 
-    // Extract unique values with proper case handling
     let uniqueValues = [...new Set(data.map((item) => item[column]))].filter(
       Boolean
     );
@@ -260,10 +225,9 @@ export async function getUniqueColumnValues(tableName, column, options = {}) {
       );
     }
 
-    console.log(`Found ${uniqueValues.length} unique ${column} values`);
-
-    // Cache the result
-    cache.set(cacheKey, uniqueValues, options.cacheTTL || 300000);
+    if (cacheKey) {
+      cache.set(cacheKey, uniqueValues, options.cacheTTL || 300000);
+    }
 
     return uniqueValues;
   } catch (error) {
@@ -271,22 +235,3 @@ export async function getUniqueColumnValues(tableName, column, options = {}) {
     throw error;
   }
 }
-
-// Test the connection immediately with a simpler query
-(async () => {
-  try {
-    console.log("Testing Supabase connection...");
-    const { data, error } = await supabase
-      .from("ultimate-table")
-      .select("dotcounty")
-      .limit(1);
-
-    if (error) {
-      console.error("Supabase connection test failed:", error);
-    } else {
-      console.log("Supabase connection test successful:", data);
-    }
-  } catch (e) {
-    console.error("Supabase connection test exception:", e);
-  }
-})();

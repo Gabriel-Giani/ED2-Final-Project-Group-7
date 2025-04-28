@@ -19,7 +19,6 @@ import { Circle, Fill, Text } from "ol/style";
 import Cluster from "ol/source/Cluster";
 import AccidentDetailsPopup from "@/app/components/AccidentDetailsPopup";
 
-// --- Map Constants (from consolidated-playground) ---
 const FLORIDA_EXTENT = [-87.8, 24.2, -79.7, 31.2];
 const FLORIDA_EXTENT_PROJ = [
   ...fromLonLat([FLORIDA_EXTENT[0], FLORIDA_EXTENT[1]]),
@@ -27,9 +26,8 @@ const FLORIDA_EXTENT_PROJ = [
 ];
 const MIN_ZOOM = 6;
 const MAX_ZOOM = 19;
-const DEFAULT_ZOOM = 7; // Slightly zoomed out default
+const DEFAULT_ZOOM = 7;
 
-// --- Styling Function (from consolidated-playground) ---
 function getHeatColor(intensity) {
   if (intensity < 0.33) return `rgba(0, 220, 0, 0.8)`; // Green
   if (intensity < 0.66) return `rgba(255, 220, 0, 0.8)`; // Yellow
@@ -38,7 +36,7 @@ function getHeatColor(intensity) {
 
 // Convert intensity (0-1) to rating (0-5)
 function getRiskRating(intensity) {
-  return Math.round(intensity * 10) / 2; // Convert to 0-5 scale with 0.5 increments
+  return Math.round(intensity * 10) / 2;
 }
 
 function getRiskRatingHTML(rating) {
@@ -85,7 +83,6 @@ function getRiskRatingHTML(rating) {
   `;
 }
 
-// Point style for individual accidents
 const accidentPointStyle = new Style({
   image: new Circle({
     radius: 5,
@@ -94,7 +91,6 @@ const accidentPointStyle = new Style({
   }),
 });
 
-// Cluster styles for accident points
 function getClusterStyle(feature) {
   const size = feature.get("features").length;
   const radius = Math.min(Math.max(8, Math.sqrt(size) * 3), 20);
@@ -123,10 +119,8 @@ function getClusterStyle(feature) {
   });
 }
 
-// --- Tooltip Interaction (from consolidated-playground) ---
 function addRoadInfoInteraction(map, layerId = "roadLayer") {
   const overlayId = "road-info-overlay";
-  // Remove any existing overlay first
   const existingOverlay = map.getOverlayById(overlayId);
   if (existingOverlay) {
     map.removeOverlay(existingOverlay);
@@ -203,11 +197,11 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
 
       let riskColor;
       if (riskRating < 2) {
-        riskColor = "#22c55e"; // Green for low risk
+        riskColor = "#22c55e"; // Green
       } else if (riskRating < 4) {
-        riskColor = "#eab308"; // Yellow for medium risk
+        riskColor = "#eab308"; // Yellow
       } else {
-        riskColor = "#ef4444"; // Red for high risk
+        riskColor = "#ef4444"; // Red
       }
 
       tooltipElement.innerHTML = `
@@ -254,7 +248,6 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
 
 function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
   const overlayId = "accident-info-overlay";
-  // Remove any existing overlay first
   const existingOverlay = map.getOverlayById(overlayId);
   if (existingOverlay) {
     map.removeOverlay(existingOverlay);
@@ -305,10 +298,10 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
       pixel,
       function (feature, layer) {
         if (layer && layer.get("layerId") === layerId) {
-          // For clusters, get the individual features
+          // Check for clusters vs single points
           const features = feature.get("features");
           if (features && features.length === 1) {
-            // Only show tooltip for individual points, not clusters
+            // Show tooltip only for individual points
             featureFound = features[0];
             return true;
           }
@@ -326,7 +319,6 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
     if (featureFound) {
       const properties = featureFound.getProperties();
 
-      // Format date and time
       const date = properties.crashdate
         ? new Date(properties.crashdate).toLocaleDateString()
         : "Unknown";
@@ -334,23 +326,22 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
         ? `${properties.crashtime.slice(0, 2)}:${properties.crashtime.slice(2)}`
         : "Unknown";
 
-      // Calculate severity level
       const injuries = properties.cntofinj || 0;
       const fatalities = properties.cntoffatl || 0;
       let severityColor;
       let severityText = "Minor";
 
       if (fatalities > 0) {
-        severityColor = "#ef4444"; // Red for fatal
+        severityColor = "#ef4444"; // Red
         severityText = "Fatal";
       } else if (injuries > 2) {
-        severityColor = "#ef4444"; // Red for severe
+        severityColor = "#ef4444"; // Red
         severityText = "Severe";
       } else if (injuries > 0) {
-        severityColor = "#eab308"; // Yellow for moderate
+        severityColor = "#eab308"; // Yellow
         severityText = "Moderate";
       } else {
-        severityColor = "#22c55e"; // Green for minor
+        severityColor = "#22c55e"; // Green
       }
 
       tooltipElement.innerHTML = `
@@ -424,13 +415,11 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
     }
   });
 
-  // Hide tooltip on map move start
   map.on("movestart", () => {
     tooltipElement.classList.add("hidden");
   });
 }
 
-// --- The Map Component ---
 export default function RoadLineMap({ onMapReady }) {
   const mapRef = useRef(null);
   const mapContainerRef = useRef(null);
@@ -441,7 +430,6 @@ export default function RoadLineMap({ onMapReady }) {
 
   const [selectedAccident, setSelectedAccident] = useState(null);
 
-  // Initialize map
   useEffect(() => {
     if (!mapRef.current && mapContainerRef.current) {
       const map = new Map({
@@ -459,14 +447,12 @@ export default function RoadLineMap({ onMapReady }) {
       });
       mapRef.current = map;
 
-      // Create vector layers
       vectorLayerRef.current = new VectorLayer({
         source: new VectorSource(),
         zIndex: 1,
         layerId: "roadLayer",
       });
 
-      // Create points layer with clustering
       const pointsSource = new VectorSource();
       clusterSourceRef.current = new Cluster({
         distance: 40,
@@ -480,14 +466,11 @@ export default function RoadLineMap({ onMapReady }) {
         layerId: "pointsLayer",
       });
 
-      // Add layers to map
       map.addLayer(vectorLayerRef.current);
       map.addLayer(pointsLayerRef.current);
 
-      // Add hover interaction for road segments only
       addRoadInfoInteraction(map, "roadLayer");
 
-      // Add click handler for accidents
       map.on("click", function (evt) {
         const feature = map.forEachFeatureAtPixel(
           evt.pixel,
@@ -529,11 +512,15 @@ export default function RoadLineMap({ onMapReady }) {
       }
     }
 
-    // Cleanup
+    // Cleanup tooltip DOM element
     return () => {
       const roadTooltip = document.getElementById("road-tooltip");
       if (roadTooltip && roadTooltip.parentNode) {
         roadTooltip.parentNode.removeChild(roadTooltip);
+      }
+      const accidentTooltip = document.getElementById("accident-tooltip");
+      if (accidentTooltip && accidentTooltip.parentNode) {
+        accidentTooltip.parentNode.removeChild(accidentTooltip);
       }
 
       if (mapRef.current) {
@@ -543,16 +530,14 @@ export default function RoadLineMap({ onMapReady }) {
     };
   }, [onMapReady]);
 
-  // Update map features based on showPoints state from context
+  // Update map layers based on showPoints state
   useEffect(() => {
     if (!mapRef.current || !vectorLayerRef.current || !pointsLayerRef.current)
       return;
 
-    // Toggle layer visibility based on showPoints from context
     vectorLayerRef.current.setVisible(!showPoints);
     pointsLayerRef.current.setVisible(showPoints);
 
-    // Update appropriate layer based on showPoints
     if (!showPoints) {
       updateHotspotLayer();
     } else {
@@ -560,7 +545,6 @@ export default function RoadLineMap({ onMapReady }) {
     }
   }, [showPoints, roadLineSegments, accidents]);
 
-  // Function to update hotspot layer
   const updateHotspotLayer = () => {
     if (!vectorLayerRef.current) return;
 
@@ -605,7 +589,6 @@ export default function RoadLineMap({ onMapReady }) {
     }
   };
 
-  // Function to update points layer
   const updatePointsLayer = () => {
     if (!clusterSourceRef.current) return;
 
