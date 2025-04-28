@@ -9,6 +9,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
+import { usePathname } from "next/navigation";
 import { accidentDataService } from "@/services/accidentDataService";
 import { roadSegmentService } from "@/services/roadSegmentService";
 
@@ -99,9 +100,21 @@ const AccidentContext = createContext();
 // Provider Component
 export function AccidentProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const pathname = usePathname();
 
   // Load data based on filters
   const loadData = useCallback(async () => {
+    if (pathname === "/case-study/fau") {
+      console.log("On case study page, skipping general data load.");
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
+      dispatch({ type: actionTypes.SET_LOADING_MESSAGE, payload: "" });
+      return;
+    }
+
+    console.log(
+      "AccidentProvider: Loading data based on filters:",
+      state.filters
+    );
     try {
       dispatch({ type: actionTypes.SET_LOADING, payload: true });
       dispatch({
@@ -141,17 +154,25 @@ export function AccidentProvider({ children }) {
       dispatch({ type: actionTypes.SET_LOADING, payload: false });
       dispatch({ type: actionTypes.SET_LOADING_MESSAGE, payload: "" });
     }
-  }, [state.filters]);
+  }, [state.filters, pathname]);
 
-  // Load main accident/segment data when filters change
+  // Load main accident/segment data when filters change OR pathname changes (to re-enable loading when navigating away from case study)
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (pathname !== "/case-study/fau") {
+      console.log(
+        "Pathname is not case study, proceeding with loadData trigger."
+      );
+      loadData();
+    }
+  }, [loadData, pathname]);
 
   // Fetch initial filter options (counties, cities) on mount
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
+        console.log("Clearing cache before fetching filter options...");
+        accidentDataService.clearCache();
+
         console.log("Fetching initial filter options (counties, cities)...");
         // Fetch counties using getRegionOptions
         const counties = await accidentDataService.getRegionOptions("county");
@@ -165,6 +186,9 @@ export function AccidentProvider({ children }) {
 
         // Fetch cities using getRegionOptions
         const cities = await accidentDataService.getRegionOptions("city");
+
+        console.log("Raw cities received from service:", cities);
+
         if (cities && cities.length > 0) {
           dispatch({ type: actionTypes.SET_CITIES, payload: cities });
           console.log(`Fetched ${cities.length} unique cities.`);

@@ -649,10 +649,32 @@ export const accidentDataService = {
         if (data && data.length > 0) {
           data.forEach((item) => {
             if (item.townname) {
-              const standardized = this.standardizeCityName(item.townname);
-              if (standardized) {
-                standardizedCities.add(standardized);
+              const name = item.townname.toString().trim(); // Ensure it's a string and trim whitespace
+
+              // --- Add filter logic ---
+              // Skip if it's purely numeric, a common non-city value, or too short
+              const isNumeric = /^\d+(\.\d+)?$/.test(name); // Matches numbers like "00", "0135", ".25"
+              // Updated regex to be less aggressive on abbreviations like St.
+              const isCommonNonCity =
+                /^(SR|COUNTY|FL|MICC|EXIT|PLAZA|TOLL|MILE MARKER|UNINCORPORATED|COMMUNITY|NAS|AFB|UNIV|INTERSTATE|HIGHWAY|\d+ ST|\d+ AVE|\d+ RD|\d+ BLVD)/i.test(
+                  name
+                ) && !/^(St\.?\s)/i.test(name);
+              const isTooShort = name.length < 3; // Skip names less than 3 chars
+
+              if (!isNumeric && !isCommonNonCity && !isTooShort) {
+                // Only proceed if it seems like a real name
+                const standardized = this.standardizeCityName(name); // Use the cleaned name
+                // Additional check to filter out names that become purely numeric *after* standardization (e.g., if standardizeCityName has a bug)
+                if (standardized && !/^\d+(\.\d+)?$/.test(standardized)) {
+                  standardizedCities.add(standardized);
+                } else if (standardized) {
+                  // console.log(`Skipping townname that became numeric after standardization: ${name} -> ${standardized}`);
+                }
+              } else {
+                // Optional: Log skipped names for review
+                // console.log(`Skipping invalid townname: ${name}`);
               }
+              // --- End filter logic ---
             }
           });
         }
@@ -662,8 +684,33 @@ export const accidentDataService = {
           standardizedCities.add(city);
         });
 
-        // Convert to array and sort
-        const uniqueCities = [...standardizedCities].sort();
+        // Convert to array
+        let uniqueCities = [...standardizedCities];
+
+        // --- Add final explicit filter ---
+        uniqueCities = uniqueCities.filter((city) => {
+          if (!city || typeof city !== "string") return false; // Basic sanity check
+          const name = city.trim();
+          const isNumeric = /^\d+(\.\d+)?$/.test(name);
+          // Filter names starting with digits or certain symbols, unless it's 'St.'
+          const startsWeird =
+            /^[0-9\.\-\_]/.test(name) && !/^(St\.?\s)/i.test(name);
+          // Filter names containing internal '.' unless it's part of 'St.' - Catches 'Al.achua'
+          const hasWeirdInternalChar =
+            name.includes(".") && !/^(St\.\s*)/i.test(name);
+          const isTooShort = name.length < 3;
+
+          const seemsValid =
+            !isNumeric && !startsWeird && !hasWeirdInternalChar && !isTooShort;
+          // if (!seemsValid) {
+          //   console.log(`Final filter removing: ${city}`);
+          // }
+          return seemsValid;
+        });
+        // --- End final filter ---
+
+        // Sort the final filtered array
+        uniqueCities.sort();
 
         cache.set(cacheKey, uniqueCities);
         return uniqueCities;
@@ -984,8 +1031,8 @@ export const accidentDataService = {
         query = query.eq("fl_ar_ag", filters.fl_ar_ag);
       }
 
-      // Apply limit with a reasonable default
-      query = query.limit(filters.limit || 2000);
+      // Apply limit BEFORE executing
+      query = query.limit(300000);
 
       // Execute the query
       const { data, error } = await query;
@@ -1364,9 +1411,8 @@ export const accidentDataService = {
         query = query.lte("totcrshdmg", parseInt(filters.damageMax, 10));
       }
 
-      // Apply Limit - reasonable default
-      const limit = filters?.limit || 5000; // Increased limit slightly
-      query = query.limit(limit);
+      // Apply limit BEFORE executing
+      query = query.limit(300000);
 
       // Execute query
       console.log("Executing Supabase accident query...");

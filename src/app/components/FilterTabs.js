@@ -88,7 +88,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
 
     return (
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
+        <span className="text-sm font-medium text-gray-300">{label}</span>
         <button
           type="button"
           onClick={(e) => {
@@ -96,7 +96,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
             updateLocalFilter(name, !isChecked);
           }}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-            isChecked ? "bg-blue-600" : "bg-gray-300"
+            isChecked ? "bg-blue-600" : "bg-gray-700"
           }`}
         >
           <span
@@ -110,14 +110,14 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
   };
 
   return (
-    <div>
+    <div className="bg-[#1e2330] p-4 rounded-lg shadow-lg">
       {/* Tab Navigation */}
-      <div className="flex border-b border-gray-300 mb-4">
+      <div className="flex border-b border-gray-700 mb-4">
         <button
           className={`py-2 px-4 font-medium ${
             activeTab === "basic"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
+              ? "text-blue-400 border-b-2 border-blue-400"
+              : "text-gray-400 hover:text-gray-200"
           }`}
           onClick={() => setActiveTab("basic")}
         >
@@ -126,8 +126,8 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
         <button
           className={`py-2 px-4 font-medium ${
             activeTab === "advanced"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-500 hover:text-gray-700"
+              ? "text-blue-400 border-b-2 border-blue-400"
+              : "text-gray-400 hover:text-gray-200"
           }`}
           onClick={() => setActiveTab("advanced")}
         >
@@ -138,11 +138,11 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
       {/* Basic Filters Tab */}
       {activeTab === "basic" && (
         <div>
-          <h2 className="font-bold text-lg mb-3">Location Filters</h2>
+          <h2 className="font-bold text-lg mb-3 text-gray-200">Location Filters</h2>
 
           {/* Region Selection */}
           <div className="mb-4">
-            <label className="block font-medium text-gray-700 mb-2">
+            <label className="block font-medium text-gray-400 mb-2">
               Region:
             </label>
             <div className="flex space-x-2 mb-2">
@@ -150,7 +150,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
                 className={`px-3 py-1 rounded ${
                   localFilters.filterRegion === "state"
                     ? "bg-blue-600 text-white"
-                    : "bg-gray-300 hover:bg-gray-400"
+                    : "bg-[#252b3b] hover:bg-[#2b324a] text-gray-300"
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -163,7 +163,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
                 className={`px-3 py-1 rounded ${
                   localFilters.filterRegion === "county"
                     ? "bg-blue-600 text-white"
-                    : "bg-gray-300 hover:bg-gray-400"
+                    : "bg-[#252b3b] hover:bg-[#2b324a] text-gray-300"
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -176,7 +176,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
                 className={`px-3 py-1 rounded ${
                   localFilters.filterRegion === "city"
                     ? "bg-blue-600 text-white"
-                    : "bg-gray-300 hover:bg-gray-400"
+                    : "bg-[#252b3b] hover:bg-[#2b324a] text-gray-300"
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -201,13 +201,13 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
 
           {/* Date Range */}
           <div className="mb-4">
-            <label className="block font-medium text-gray-700 mb-2">
+            <label className="block font-medium text-gray-400 mb-2">
               Date Range:
             </label>
             <div className="flex gap-2">
               <input
                 type="date"
-                className="border rounded p-2 flex-1"
+                className="border border-gray-700 rounded p-2 flex-1 bg-[#252b3b] text-gray-200 focus:outline-none focus:border-gray-600"
                 value={localFilters.dateRange.start}
                 onChange={(e) => {
                   const newDateRange = {
@@ -220,7 +220,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
               />
               <input
                 type="date"
-                className="border rounded p-2 flex-1"
+                className="border border-gray-700 rounded p-2 flex-1 bg-[#252b3b] text-gray-200 focus:outline-none focus:border-gray-600"
                 value={localFilters.dateRange.end}
                 onChange={(e) => {
                   const newDateRange = {
@@ -244,12 +244,12 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
                   updateLocalFilter("useTimeFilter", e.target.checked)
                 }
                 onClick={(e) => e.stopPropagation()}
-                className="rounded border-gray-300"
+                className="rounded border-gray-700 bg-[#252b3b]"
                 id="time-filter-checkbox"
               />
               <label
                 htmlFor="time-filter-checkbox"
-                className="font-medium text-gray-700"
+                className="font-medium text-gray-400"
               >
                 Time Range:
               </label>
@@ -257,7 +257,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
             <div className="flex gap-2">
               <input
                 type="time"
-                className="border rounded p-2 flex-1"
+                className="border border-gray-700 rounded p-2 flex-1 bg-[#252b3b] text-gray-200 disabled:bg-[#1e2332] disabled:text-gray-500 focus:outline-none focus:border-gray-600"
                 value={localFilters.timeRange.start}
                 onChange={(e) => {
                   const newTimeRange = {
@@ -271,7 +271,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
               />
               <input
                 type="time"
-                className="border rounded p-2 flex-1"
+                className="border border-gray-700 rounded p-2 flex-1 bg-[#252b3b] text-gray-200 disabled:bg-[#1e2332] disabled:text-gray-500 focus:outline-none focus:border-gray-600"
                 value={localFilters.timeRange.end}
                 onChange={(e) => {
                   const newTimeRange = {
@@ -288,17 +288,17 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
 
           {/* Day of Week */}
           <div className="mb-4">
-            <label className="block font-medium text-gray-700 mb-2">
+            <label className="block font-medium text-gray-400 mb-2">
               Day of Week:
             </label>
             <select
-              className="border rounded p-2 w-full"
+              className="border border-gray-700 rounded p-2 w-full bg-[#252b3b] text-gray-200 focus:outline-none focus:border-gray-600"
               value={localFilters.dayOfWeek}
               onChange={(e) => updateLocalFilter("dayOfWeek", e.target.value)}
               onClick={(e) => e.stopPropagation()}
             >
               {filterOptions.dayOfWeek.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option key={option.value} value={option.value} className="bg-[#252b3b]">
                   {option.label}
                 </option>
               ))}
@@ -307,13 +307,13 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
 
           {/* Road Name */}
           <div className="mb-4">
-            <label className="block font-medium text-gray-700 mb-2">
+            <label className="block font-medium text-gray-400 mb-2">
               Road Name:
             </label>
             <input
               type="text"
               placeholder="Enter road name"
-              className="border rounded p-2 w-full"
+              className="border border-gray-700 rounded p-2 w-full bg-[#252b3b] text-gray-200 placeholder-gray-500 focus:outline-none focus:border-gray-600"
               value={localFilters.roadName}
               onChange={(e) => updateLocalFilter("roadName", e.target.value)}
               onClick={(e) => e.stopPropagation()}
@@ -324,20 +324,20 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
           <div className="mb-4">
             <label
               htmlFor="top-segments-limit"
-              className="block font-medium text-gray-700 mb-2"
+              className="block font-medium text-gray-400 mb-2"
             >
               Top Ranked Roads Limit:
             </label>
             <input
               id="top-segments-limit"
               type="number"
-              min="1" // Prevent negative or zero visually
-              className="border rounded p-2 w-full"
-              value={localFilters.topSegmentsLimit || ""} // Use localFilters
+              min="1"
+              className="border border-gray-700 rounded p-2 w-full bg-[#252b3b] text-gray-200 focus:outline-none focus:border-gray-600"
+              value={localFilters.topSegmentsLimit || ""}
               onChange={(e) =>
                 updateLocalFilter("topSegmentsLimit", e.target.value)
-              } // Use updateLocalFilter
-              onClick={(e) => e.stopPropagation()} // Prevent closing popup
+              }
+              onClick={(e) => e.stopPropagation()}
             />
           </div>
         </div>
@@ -346,21 +346,21 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
       {/* Advanced Filters Tab */}
       {activeTab === "advanced" && (
         <div>
-          <h2 className="font-bold text-lg mb-3">Crash Characteristics</h2>
+          <h2 className="font-bold text-lg mb-3 text-gray-200">Crash Characteristics</h2>
 
           {/* Injury Level */}
           <div className="mb-4">
-            <label className="block font-medium text-gray-700 mb-2">
+            <label className="block font-medium text-gray-400 mb-2">
               Highest Injury Level:
             </label>
             <select
-              className="border rounded p-2 w-full"
+              className="border border-gray-700 rounded p-2 w-full bg-[#252b3b] text-gray-200 focus:outline-none focus:border-gray-600"
               value={localFilters.injuryLevel}
               onChange={(e) => updateLocalFilter("injuryLevel", e.target.value)}
               onClick={(e) => e.stopPropagation()}
             >
               {filterOptions.injuryLevel.map((option) => (
-                <option key={option.value} value={option.value}>
+                <option key={option.value} value={option.value} className="bg-[#252b3b]">
                   {option.label}
                 </option>
               ))}
@@ -368,7 +368,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
           </div>
 
           {/* Environmental Conditions */}
-          <h2 className="font-bold text-lg mb-3 mt-6">
+          <h2 className="font-bold text-lg mb-3 mt-6 text-gray-200">
             Environmental Conditions
           </h2>
 
@@ -376,18 +376,18 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
             <div>
               {/* Light Condition */}
               <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-2">
+                <label className="block font-medium text-gray-400 mb-2">
                   Light:
                 </label>
                 <select
-                  className="border rounded p-2 w-full"
+                  className="border border-gray-700 rounded p-2 w-full bg-[#252b3b] text-gray-200 focus:outline-none focus:border-gray-600"
                   value={localFilters.lightCondition}
                   onChange={(e) =>
                     updateLocalFilter("lightCondition", e.target.value)
                   }
                 >
                   {filterOptions.lightCondition.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option key={option.value} value={option.value} className="bg-[#252b3b]">
                       {option.label}
                     </option>
                   ))}
@@ -398,18 +398,18 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
             <div>
               {/* Weather Condition */}
               <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-2">
+                <label className="block font-medium text-gray-400 mb-2">
                   Weather:
                 </label>
                 <select
-                  className="border rounded p-2 w-full"
+                  className="border border-gray-700 rounded p-2 w-full bg-[#252b3b] text-gray-200 focus:outline-none focus:border-gray-600"
                   value={localFilters.weatherCondition}
                   onChange={(e) =>
                     updateLocalFilter("weatherCondition", e.target.value)
                   }
                 >
                   {filterOptions.weatherCondition.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option key={option.value} value={option.value} className="bg-[#252b3b]">
                       {option.label}
                     </option>
                   ))}
@@ -423,18 +423,18 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
             <div>
               {/* Road Surface */}
               <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-2">
+                <label className="block font-medium text-gray-400 mb-2">
                   Road Surface:
                 </label>
                 <select
-                  className="border rounded p-2 w-full"
+                  className="border border-gray-700 rounded p-2 w-full bg-[#252b3b] text-gray-200 focus:outline-none focus:border-gray-600"
                   value={localFilters.roadSurfaceCondition}
                   onChange={(e) =>
                     updateLocalFilter("roadSurfaceCondition", e.target.value)
                   }
                 >
                   {filterOptions.roadSurfaceCondition.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option key={option.value} value={option.value} className="bg-[#252b3b]">
                       {option.label}
                     </option>
                   ))}
@@ -445,18 +445,18 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
             <div>
               {/* Direction */}
               <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-2">
+                <label className="block font-medium text-gray-400 mb-2">
                   Direction:
                 </label>
                 <select
-                  className="border rounded p-2 w-full"
+                  className="border border-gray-700 rounded p-2 w-full bg-[#252b3b] text-gray-200 focus:outline-none focus:border-gray-600"
                   value={localFilters.direction}
                   onChange={(e) =>
                     updateLocalFilter("direction", e.target.value)
                   }
                 >
                   {filterOptions.direction.map((option) => (
-                    <option key={option.value} value={option.value}>
+                    <option key={option.value} value={option.value} className="bg-[#252b3b]">
                       {option.label}
                     </option>
                   ))}
@@ -466,7 +466,7 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
           </div>
 
           {/* Participant Factors */}
-          <h2 className="font-bold text-lg mb-3 mt-6">Participant Factors</h2>
+          <h2 className="font-bold text-lg mb-3 mt-6 text-gray-200">Participant Factors</h2>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -499,26 +499,26 @@ export default function FilterTabs({ localFilters, setLocalFilters }) {
           </div>
 
           {/* Damage amount */}
-          <h2 className="font-bold text-lg mb-3 mt-6">Damage</h2>
+          <h2 className="font-bold text-lg mb-3 mt-6 text-gray-200">Damage</h2>
           <div className="mb-4">
-            <label className="block font-medium text-gray-700 mb-2">
+            <label className="block font-medium text-gray-400 mb-2">
               Total Crash Damage ($):
             </label>
             <div className="flex items-center gap-2">
               <input
                 type="number"
                 placeholder="Min"
-                className="border rounded p-2 flex-1"
+                className="border border-gray-700 rounded p-2 flex-1 bg-[#252b3b] text-gray-200 focus:outline-none focus:border-gray-600"
                 value={localFilters.damageMin}
                 onChange={(e) => updateLocalFilter("damageMin", e.target.value)}
                 onClick={(e) => e.stopPropagation()}
                 min="0"
               />
-              <span>to</span>
+              <span className="text-gray-400">to</span>
               <input
                 type="number"
                 placeholder="Max"
-                className="border rounded p-2 flex-1"
+                className="border border-gray-700 rounded p-2 flex-1 bg-[#252b3b] text-gray-200 focus:outline-none focus:border-gray-600"
                 value={localFilters.damageMax}
                 onChange={(e) => updateLocalFilter("damageMax", e.target.value)}
                 onClick={(e) => e.stopPropagation()}

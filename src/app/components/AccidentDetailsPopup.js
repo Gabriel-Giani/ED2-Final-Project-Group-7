@@ -20,65 +20,65 @@ export default function AccidentDetailsPopup({ accident, onClose, position }) {
     });
   };
 
-  // Format time from 24hr to 12hr format with better error handling
+  // Format time from 24hr to 12hr format
   const formatTime = (timeStr) => {
-    if (!timeStr) return "Unknown time";
+    if (!timeStr && timeStr !== 0) return "Unknown time";
+
     try {
-      // Handle 4-digit format (e.g., "1840")
-      if (typeof timeStr === "string" && timeStr.length === 4) {
-        const hours = parseInt(timeStr.substring(0, 2), 10);
-        const minutes = timeStr.substring(2, 4);
-        const ampm = hours >= 12 ? "PM" : "AM";
-        const hour12 = hours % 12 || 12;
-        return `${hour12}:${minutes} ${ampm}`;
+      // Handle timeStr as int8
+      let hours, minutes;
+
+      if (typeof timeStr === "string") {
+        [hours, minutes] = timeStr.split(":");
+      } else {
+        // Assuming timeStr is an integer representing 24hr time in format HHMM
+        const timeNum = parseInt(timeStr, 10);
+        hours = Math.floor(timeNum / 100);
+        minutes = timeNum % 100;
+        // Pad minutes with leading zero if needed
+        minutes = minutes < 10 ? `0${minutes}` : minutes.toString();
       }
 
-      // Handle HH:MM format
-      if (typeof timeStr === "string" && timeStr.includes(":")) {
-        const [hours, minutes] = timeStr.split(":");
-        const hour = parseInt(hours, 10);
-        const ampm = hour >= 12 ? "PM" : "AM";
-        const hour12 = hour % 12 || 12;
-        return `${hour12}:${minutes} ${ampm}`;
-      }
+      if (isNaN(hours) || isNaN(parseInt(minutes))) return "Unknown time";
 
-      // If it's a number, convert to string and handle as 4-digit format
-      if (typeof timeStr === "number") {
-        const timeString = timeStr.toString().padStart(4, "0");
-        const hours = parseInt(timeString.substring(0, 2), 10);
-        const minutes = timeString.substring(2, 4);
-        const ampm = hours >= 12 ? "PM" : "AM";
-        const hour12 = hours % 12 || 12;
-        return `${hour12}:${minutes} ${ampm}`;
-      }
-
-      return timeStr.toString();
-    } catch (e) {
-      console.warn("Error formatting time:", e);
-      return timeStr?.toString() || "Unknown time";
+      const hour = parseInt(hours, 10);
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const hour12 = hour % 12 || 12;
+      return `${hour12}:${minutes} ${ampm}`;
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return "Unknown time";
     }
   };
 
-  // Map injury level codes to readable descriptions
+  // Map injury level codes to readable descriptions - Updated based on FDOT Safety Office codes
   const getInjuryLevelText = (code) => {
+    // highestinj is text
     const injuryLevels = {
+      0: "Not coded",
       1: "No injury",
       2: "Possible injury",
       3: "Non-incapacitating injury",
       4: "Incapacitating injury",
-      5: "Fatal injury",
+      5: "Fatal injury (within 30 days)",
+      6: "Nontraffic fatal",
     };
-    return injuryLevels[code] || "Unknown injury level";
+    return injuryLevels[code] || code || "Unknown injury level";
   };
 
-  // Map weather condition codes to readable descriptions
+  // Map weather condition codes to readable descriptions - Updated based on DHSMV codes
   const getWeatherText = (code) => {
+    // weathercond is in8
     const weatherConditions = {
       "01": "Clear",
+      1: "Clear",
       "02": "Cloudy",
+      2: "Cloudy",
       "03": "Rain",
+      3: "Rain",
       "04": "Fog",
-      77: "Other",
+      4: "Fog",
+      77: "All other",
     };
     return weatherConditions[code] || "Unknown weather";
   };
@@ -87,24 +87,42 @@ export default function AccidentDetailsPopup({ accident, onClose, position }) {
   const getRoadSurfaceText = (code) => {
     const roadConditions = {
       "01": "Dry",
+      1: "Dry",
       "02": "Wet",
+      2: "Wet",
       "03": "Slippery",
+      3: "Slippery",
       "04": "Icy",
+      4: "Icy",
       77: "Other",
     };
     return roadConditions[code] || "Unknown road condition";
   };
 
-  // Map light condition codes to readable descriptions
+  // Map light condition codes to readable descriptions - Updated based on DHSMV codes
   const getLightConditionText = (code) => {
+    // lightcond is in8
     const lightConditions = {
       "01": "Daylight",
+      1: "Daylight",
       "02": "Dusk",
+      2: "Dusk",
       "03": "Dawn",
-      "04": "Dark (street lights)",
-      "05": "Dark (no street lights)",
+      3: "Dawn",
+      "04": "Dark (street light)",
+      4: "Dark (street light)",
+      "05": "Dark (no street light)",
+      5: "Dark (no street light)",
+      88: "Unknown",
     };
     return lightConditions[code] || "Unknown light condition";
+  };
+
+  // Format Yes/No flag
+  const formatYesNo = (flag) => {
+    if (flag === "Y") return "Yes";
+    if (flag === "N") return "No";
+    return "No"; // Default to "No" instead of "Unknown" for null values
   };
 
   // Get day of week text
@@ -217,7 +235,7 @@ export default function AccidentDetailsPopup({ accident, onClose, position }) {
                 <p className="text-gray-900 dark:text-white">
                   {getInjuryLevelText(accident.highestinj)}
                 </p>
-                <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
+                {/* <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-gray-500 dark:text-gray-400">
                       Injuries:{" "}
@@ -234,7 +252,7 @@ export default function AccidentDetailsPopup({ accident, onClose, position }) {
                       {accident.cntoffatl || "0"}
                     </span>
                   </div>
-                </div>
+                </div> */}
               </div>
 
               {/* Conditions */}
@@ -270,26 +288,18 @@ export default function AccidentDetailsPopup({ accident, onClose, position }) {
                 </div>
               </div>
 
-              {/* Participants */}
+              {/* Vulnerable Road Users */}
               <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                 <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Participants
+                  Vulnerable Road Users
                 </h3>
                 <div className="mt-1 grid grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <span className="text-gray-500 dark:text-gray-400">
-                      Vehicles:{" "}
-                    </span>
-                    <span className="text-gray-900 dark:text-white">
-                      {accident.cntofveh || "0"}
-                    </span>
-                  </div>
                   <div>
                     <span className="text-gray-500 dark:text-gray-400">
                       Pedestrians:{" "}
                     </span>
                     <span className="text-gray-900 dark:text-white">
-                      {accident.cntofpedes || "0"}
+                      {formatYesNo(accident.FL_VRU_PED)}
                     </span>
                   </div>
                   <div>
@@ -297,29 +307,75 @@ export default function AccidentDetailsPopup({ accident, onClose, position }) {
                       Cyclists:{" "}
                     </span>
                     <span className="text-gray-900 dark:text-white">
-                      {accident.cntofcycls || "0"}
+                      {formatYesNo(accident.FL_VRU_BIK)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Motorcyclists:{" "}
+                    </span>
+                    <span className="text-gray-900 dark:text-white">
+                      {formatYesNo(accident.FL_VRU_MOT)}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Damage */}
-              {accident.totcrshdmg && (
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Estimated Damage
-                  </h3>
-                  <p className="text-gray-900 dark:text-white">
-                    ${parseInt(accident.totcrshdmg).toLocaleString()}
-                  </p>
+              {/* At-Risk Drivers */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  At-Risk Drivers
+                </h3>
+                <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Teen Drivers (15-19):{" "}
+                    </span>
+                    <span className="text-gray-900 dark:text-white">
+                      {formatYesNo(accident.FL_AR_TEEN)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Aging Drivers (65+):{" "}
+                    </span>
+                    <span className="text-gray-900 dark:text-white">
+                      {formatYesNo(accident.FL_AR_AG)}
+                    </span>
+                  </div>
                 </div>
-              )}
+              </div>
+
+              {/* Additional Factors */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Additional Factors
+                </h3>
+                <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Aggressive Driving:{" "}
+                    </span>
+                    <span className="text-gray-900 dark:text-white">
+                      {formatYesNo(accident.FL_AGGRSV)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Impaired Driving:{" "}
+                    </span>
+                    <span className="text-gray-900 dark:text-white">
+                      {formatYesNo(accident.FLAG_IMP)}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               {/* Case Information */}
               <div className="pt-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
                 <p>Case #: {accident.casenumber || "N/A"}</p>
                 <p>Crash #: {accident.crashnum || "N/A"}</p>
-                <p>Agency: {accident.agency || "N/A"}</p>
+                <p>Agency: FDOT</p>
               </div>
             </div>
           </div>

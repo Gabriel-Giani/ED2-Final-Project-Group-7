@@ -521,7 +521,7 @@ export async function getMajorRoadLineSegments(
     // Be mindful of performance impact with many filters.
 
     // Apply limit (essential for performance)
-    query = query.limit(10000); // Keep limit from playground
+    query = query.limit(300000); // Limit back to 10,000
 
     const { data: accidentData, error: accidentError } = await query;
 
