@@ -75,7 +75,7 @@ function getRiskRatingHTML(rating) {
       </div>
       <div class="flex gap-1">
         ${fullSymbolSVG.repeat(fullSymbols)}
-        ${hasHalfSymbol ? halfSymbolSVG : ''}
+        ${hasHalfSymbol ? halfSymbolSVG : ""}
         ${emptySymbolSVG.repeat(emptySymbols)}
       </div>
       <div class="text-xs text-gray-300">
@@ -132,7 +132,8 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
     map.removeOverlay(existingOverlay);
   }
 
-  const tooltipElement = document.getElementById("road-tooltip") || document.createElement("div");
+  const tooltipElement =
+    document.getElementById("road-tooltip") || document.createElement("div");
   tooltipElement.id = "road-tooltip";
   tooltipElement.className = "ol-tooltip hidden";
   tooltipElement.style.position = "absolute";
@@ -145,7 +146,7 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
   tooltipElement.style.pointerEvents = "none";
   tooltipElement.style.zIndex = "1000";
   tooltipElement.style.fontSize = "12px";
-  tooltipElement.style.minWidth = "350px";
+  tooltipElement.style.minWidth = "200px";
   tooltipElement.style.maxWidth = "400px";
   tooltipElement.style.wordBreak = "normal";
 
@@ -158,7 +159,7 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
     id: overlayId,
     offset: [0, -15],
     positioning: "bottom-center",
-    stopEvent: false
+    stopEvent: false,
   });
   map.addOverlay(tooltip);
 
@@ -199,7 +200,7 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
       };
 
       const riskRating = getRiskRating(properties.intensity);
-      
+
       let riskColor;
       if (riskRating < 2) {
         riskColor = "#22c55e"; // Green for low risk
@@ -211,11 +212,13 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
 
       tooltipElement.innerHTML = `
         <div style="margin-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); padding-bottom: 6px;">
-          <div style="font-weight: bold; font-size: 14px;">${properties.name}</div>
+          <div style="font-weight: bold; font-size: 14px;">${
+            properties.name
+          }</div>
         </div>
         <div style="display: flex; margin-bottom: 6px;">
           <div style="width: 120px; color: #94a3b8;">Road Type:</div>
-          <div>${properties.roadType || 'N/A'}</div>
+          <div>${properties.roadType || "N/A"}</div>
         </div>
         <div style="display: flex; margin-bottom: 6px;">
           <div style="width: 120px; color: #94a3b8;">Accidents:</div>
@@ -231,7 +234,9 @@ function addRoadInfoInteraction(map, layerId = "roadLayer") {
         </div>
         <div style="display: flex; margin-bottom: 6px;">
           <div style="width: 120px; color: #94a3b8;">Risk Rating:</div>
-          <div style="color: ${riskColor}; font-weight: bold">${riskRating.toFixed(1)}/5</div>
+          <div style="color: ${riskColor}; font-weight: bold">${riskRating.toFixed(
+        1
+      )}/5</div>
         </div>
       `;
 
@@ -255,7 +260,9 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
     map.removeOverlay(existingOverlay);
   }
 
-  const tooltipElement = document.getElementById("accident-tooltip") || document.createElement("div");
+  const tooltipElement =
+    document.getElementById("accident-tooltip") ||
+    document.createElement("div");
   tooltipElement.id = "accident-tooltip";
   tooltipElement.className = "ol-tooltip hidden";
   tooltipElement.style.position = "absolute";
@@ -281,7 +288,7 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
     id: overlayId,
     offset: [0, -15],
     positioning: "bottom-center",
-    stopEvent: false
+    stopEvent: false,
   });
   map.addOverlay(tooltip);
 
@@ -332,7 +339,7 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
       const fatalities = properties.cntoffatl || 0;
       let severityColor;
       let severityText = "Minor";
-      
+
       if (fatalities > 0) {
         severityColor = "#ef4444"; // Red for fatal
         severityText = "Fatal";
@@ -348,13 +355,19 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
 
       tooltipElement.innerHTML = `
         <div style="margin-bottom: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); padding-bottom: 6px;">
-          <div style="font-weight: bold; font-size: 14px;">${properties.onroadname || "Unknown Road"}</div>
+          <div style="font-weight: bold; font-size: 14px;">${
+            properties.onroadname || "Unknown Road"
+          }</div>
         </div>
-        ${properties.inroadname ? `
+        ${
+          properties.inroadname
+            ? `
         <div style="display: flex; margin-bottom: 6px;">
           <div style="width: 120px; color: #94a3b8;">Intersection:</div>
           <div>${properties.inroadname}</div>
-        </div>` : ''}
+        </div>`
+            : ""
+        }
         <div style="display: flex; margin-bottom: 6px;">
           <div style="width: 120px; color: #94a3b8;">Date:</div>
           <div>${date}</div>
@@ -375,23 +388,35 @@ function addAccidentInfoInteraction(map, layerId = "pointsLayer") {
           <div style="width: 120px; color: #94a3b8;">Severity:</div>
           <div style="color: ${severityColor}; font-weight: bold">${severityText}</div>
         </div>
-        ${properties.weathcond ? `
+        ${
+          properties.weathcond
+            ? `
         <div style="display: flex; margin-bottom: 6px;">
           <div style="width: 120px; color: #94a3b8;">Weather:</div>
           <div>${properties.weathcond}</div>
-        </div>` : ''}
-        ${properties.lightcond ? `
+        </div>`
+            : ""
+        }
+        ${
+          properties.lightcond
+            ? `
         <div style="display: flex; margin-bottom: 6px;">
           <div style="width: 120px; color: #94a3b8;">Lighting:</div>
           <div>${properties.lightcond}</div>
-        </div>` : ''}
-        ${properties.rdsurfcond ? `
+        </div>`
+            : ""
+        }
+        ${
+          properties.rdsurfcond
+            ? `
         <div style="display: flex; margin-bottom: 6px;">
           <div style="width: 120px; color: #94a3b8;">Road Surface:</div>
           <div>${properties.rdsurfcond}</div>
-        </div>` : ''}
+        </div>`
+            : ""
+        }
       `;
-      
+
       tooltip.setPosition(evt.coordinate);
       tooltipElement.classList.remove("hidden");
     } else {

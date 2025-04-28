@@ -122,7 +122,7 @@ async function getMajorRoadSegments(
     if (startTime && endTime) {
       query = query.gte("crashtime", startTime).lte("crashtime", endTime);
     }
-    query = query.limit(10000);
+    query = query.limit(300000);
     const { data: accidentData, error: accidentError } = await query;
 
     if (accidentError) {
